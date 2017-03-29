@@ -8,6 +8,7 @@ UV_LIBS = $(shell pkg-config --libs $(UV_MODS))
 
 CFLAGS ?= -Wall -std=c99 -pedantic $(CURL_CFLAGS) $(UV_CFLAGS)
 CFLAGS += -D_POSIX_C_SOURCE=199309L
+#CFLAGS += -D_XOPEN_SOURCE=500
 LDFLAGS ?= 
 LIBS ?= $(CURL_LIBS) $(UV_LIBS)
 
