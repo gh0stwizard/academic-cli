@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <curl/curl.h>
+#include <uv.h>
 #include "vlog.h"
 #include "check.h"
 #include "term.h"
@@ -30,8 +32,13 @@ parse (const char *js, jsmntok_t *t, size_t count, token_node_t **out);
 static int
 get_token_nodes (const char *data, size_t size, token_node_t **out);
 
+#ifdef _DEBUG_TERM
 static void
 dump_nodes (const char *js, token_node_t *nodes, int count);
+#endif
+
+static term_result_t *
+conv_nodes (char *js, token_node_t *nodes, int count);
 
 
 /* ------------------------------------------------------------------ */
@@ -46,6 +53,7 @@ term_cb (uv_work_t *req)
 	curl_mem_t storage;
 	token_node_t *nodes;
 	int nodes_num;
+	term_result_t *result;
 
 
 	w = (term_t *) req->data;
@@ -80,10 +88,19 @@ term_cb (uv_work_t *req)
 
 	nodes_num = get_token_nodes (storage.data, storage.size, &nodes);
 	vlog (VLOG_DEBUG, "%s: %p: nodes = %d", __func__, req, nodes_num);
+#ifdef _DEBUG_TERM
 	dump_nodes (storage.data, nodes, nodes_num);
+#endif
 
-	if (nodes_num > 0)
-		free (nodes);
+	/* fill results */
+	result = conv_nodes (storage.data, nodes, nodes_num);
+	/* pass back async pointer to main thread */
+	result->async = w->async;
+	result->entries = nodes_num;
+	w->async->data = result;
+
+	/* notify main thread that we have finished */
+	uv_async_send (w->async);
 
 	curl_easy_cleanup (handle);
 	free (storage.data);
@@ -97,6 +114,11 @@ term_after_cb (uv_work_t *req, int status)
 
 
 	vlog (VLOG_TRACE, "%s: %p: status %d", __func__, req, status);
+
+	if (w->lock != NULL) {
+		uv_rwlock_destroy (w->lock);
+		free (w->lock);
+	}
 
 	req->data = NULL;
 	free (w);
@@ -269,16 +291,15 @@ parse (const char *js, jsmntok_t *tokens, size_t count, token_node_t **out)
 //			vlog (VLOG_TRACE, "%s: allocate token nodes", __func__);
 			*out = (token_node_t *) malloc (sizeof (token_node_t));
 			NULL_CHECK(*out);
-			current = *out;
 		}
 		else {
 //			vlog (VLOG_TRACE, "%s: reallocate token nodes", __func__);
 			*out = (token_node_t *) realloc 
-			(*out, sizeof (token_node_t) * found);
-			NULL_CHECK(*out);
-			current = *out + found - 1;
+				(*out, sizeof (token_node_t) * found);
+			NULL_CHECK(*out);			
 		}
 
+		current = *out + found - 1;
 		current->id = id;
 		current->value = value;
 		current->info = info;
@@ -291,6 +312,7 @@ parse (const char *js, jsmntok_t *tokens, size_t count, token_node_t **out)
 }
 
 
+#ifdef _DEBUG_TERM
 static void
 dump_nodes (const char *js, token_node_t *nodes, int count)
 {
@@ -303,4 +325,58 @@ dump_nodes (const char *js, token_node_t *nodes, int count)
 			n->id->end - n->id->start, js+n->id->start,
 			n->value->end - n->value->start, js+n->value->start,
 			n->info->end - n->info->start, js+n->info->start);
+}
+#endif
+
+
+static term_result_t *
+conv_nodes (char *js, token_node_t *nodes, int count)
+{
+	term_result_t *result;
+	term_data_t *list;
+	term_data_t *listp;
+	token_node_t *n;
+	register int len;
+	char *str;
+
+
+	result = (term_result_t *) malloc (sizeof (*result));
+	NULL_CHECK(result);
+
+	if (count <= 0) {
+		result->list = NULL;
+		return result;
+	}
+
+	NULL_CHECK(list = (term_data_t *) calloc (count, sizeof (*list)));
+	listp = list;
+	result->list = list;
+
+	n = nodes;
+	for (int i = 0; i < count; i++, n++, listp++) {
+		vlog (VLOG_TRACE, "%s: assemble %d entry", __func__, i);
+
+		len = n->id->end - n->id->start;
+		vlog (VLOG_TRACE, "%s at %d: len %d", __func__, __LINE__, len);
+		NULL_CHECK(str = malloc (sizeof (*str) * (size_t)(len + 1)));
+		memcpy (str, js+n->id->start, len);
+		str[len] = '\0';
+		listp->id = str;
+
+		len = n->value->end - n->value->start;
+		vlog (VLOG_TRACE, "%s at %d: len %d", __func__, __LINE__, len);
+		NULL_CHECK(str = malloc (sizeof (*str) * (len + 1)));
+		memcpy (str, js+n->value->start, len);
+		str[len] = '\0';
+		listp->value = str;
+
+		len = n->info->end - n->info->start;
+		vlog (VLOG_TRACE, "%s at %d: len %d", __func__, __LINE__, len);
+		NULL_CHECK(str = malloc (sizeof (*str) * (len + 1)));
+		memcpy (str, js+n->info->start, len);
+		str[len] = '\0';
+		listp->info = str;
+	}
+
+	return result;
 }

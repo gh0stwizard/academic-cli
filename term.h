@@ -9,7 +9,21 @@ typedef struct term_s {
 	unsigned int limit;
 	academic_did did;
 	const char *query;
+	uv_async_t *async;
+	uv_rwlock_t *lock;
 } term_t;
+
+typedef struct term_data_s {
+	char *id;
+	char *value;
+	char *info;
+} term_data_t;
+
+typedef struct term_result_s {
+	uv_async_t *async; /* XXX: baton??? */
+	term_data_t *list;
+	int entries;
+} term_result_t;
 
 
 void
