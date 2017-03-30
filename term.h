@@ -6,9 +6,9 @@
 
 
 typedef struct term_s {
-	unsigned int limit;
-	academic_did did;
-	const char *query;
+	int limit;
+	int did;
+	const char *word;
 	uv_async_t *async;
 	uv_rwlock_t *lock;
 } term_t;
@@ -22,6 +22,8 @@ typedef struct term_data_s {
 typedef struct term_result_s {
 	term_data_t *list;
 	int entries;
+	const char *word;
+	int did;
 } term_result_t;
 
 

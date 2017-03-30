@@ -1,0 +1,4 @@
+* add support to locales diffent from utf-8
+* add all dictionaries en-ru, ru-en
+* store results into database
+* auto-restart curl download if last one has been failed

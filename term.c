@@ -11,9 +11,6 @@
 #include "jsmn.h"
 
 
-#define MAX_URL_SIZE 1024
-
-
 typedef struct token_node_s {
 	jsmntok_t *id;
 	jsmntok_t *value;
@@ -52,11 +49,11 @@ term_cb (uv_work_t *req)
 	w = (term_t *) req->data;
 
 	snprintf (url, MAX_URL_SIZE, ACADEMIC_URL_TERM_FMT,
-		w->limit, academic_did_name[w->did], w->query);
+		w->limit, academic_did_name[w->did], w->word);
 
-	storage.data = malloc (sizeof (char));
+	vlog (VLOG_DEBUG, "%s: %s: %s", __func__, w->word, url);
 
-	vlog (VLOG_TRACE, "%s: %p: %s", __func__, req, url);
+	NULL_CHECK(storage.data = malloc (sizeof (char)));
 
 	NULL_CHECK(handle = curl_easy_init ());
 
@@ -79,9 +76,15 @@ term_cb (uv_work_t *req)
 	
 	CURL_CHECK(curl_easy_perform (handle));
 
+	/* parse json data */
 	get_result (storage.data, storage.size, &result);
+	/* copy query data back that the main thread recogninise it */
+	result->word = w->word;
+	result->did = w->did;
+	/* write result & send it to main thread */
+	uv_rwlock_wrlock (w->lock);
 	w->async->data = result;
-
+	uv_rwlock_wrunlock (w->lock);
 	/* notify main thread that we have finished */
 	uv_async_send (w->async);
 
@@ -96,7 +99,8 @@ term_after_cb (uv_work_t *req, int status)
 	term_t *w = (term_t *) req->data;
 
 
-	vlog (VLOG_TRACE, "%s: %p: status %d", __func__, req, status);
+	if (status != 0)
+		vlog (VLOG_ERROR, "%s: %p: status %d", __func__, req, status);
 
 	if (w->lock != NULL) {
 		uv_rwlock_destroy (w->lock);

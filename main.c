@@ -7,6 +7,7 @@
 #include "check.h"
 #include "loop.h"
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 typedef struct worker_s {
 	CURL *curl;
@@ -57,9 +58,14 @@ main (int argc, char *argv[])
 	init_uv ();
 	print_uv_version ();
 
+	int did[] = {
+//		ACADEMIC_DID_SYNONYMUM_RU_EN,
+		ACADEMIC_DID_SYNONYMUM_EN_RU,
+//		ACADEMIC_DID_UNIVERSAL_EN_RU,
+	};
+
 	while (argc-- > 1) {
-		queue_term (argv[argc],
-			ACADEMIC_DID_SYNONYMUM_EN_RU, ACADEMIC_TERM_LIMIT);
+		queue_word (argv[argc], did, ARRAY_SIZE(did));
 	}
 
 	uv_run (loop, UV_RUN_DEFAULT);

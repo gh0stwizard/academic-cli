@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <string.h>
 #include <uv.h>
+#include "queue.h"
 #include "term.h"
 #include "dic.h"
 #include "check.h"
@@ -8,23 +10,74 @@
 
 
 static void
-_term_async_cb (uv_async_t *handle);
+_term_cb (uv_async_t *handle);
+
+static void
+_word_id_cb (uv_async_t *handle);
+
+static void
+_queue_word_id (int word_id, int did, uv_async_cb cb);
+
+static void
+_free_term_results (term_result_t *t);
+
+static void
+_free_dic_results (dic_result_t *d);
 
 
-void
-queue_word (const char *word, academic_did did_list[])
+/* ------------------------------------------------------------------ */
+
+
+extern void
+queue_word (const char *word, int did[], int did_num)
 {
-	
+	while (did_num-- > 0)
+		queue_term (word, did[did_num], ACADEMIC_TERM_LIMIT, _term_cb);
 }
 
 
-void
-queue_term (const char *word, academic_did did, unsigned int limit)
+extern void
+query_word_by_id (int word_id, int did[], int did_num)
+{
+	while (did_num-- > 0)
+		_queue_word_id (word_id, did[did_num], _word_id_cb);
+}
+
+
+static void
+_queue_word_id (int word_id, int did, uv_async_cb cb)
 {
 	uv_work_t *w;
-	term_t *term;
 	uv_async_t *async;
 	uv_rwlock_t *lock;
+	dic_t *dic;
+
+
+	NULL_CHECK(w = (uv_work_t *) malloc (sizeof (*w)));
+	NULL_CHECK(async = (uv_async_t *) malloc (sizeof (*async)));
+	NULL_CHECK(lock = (uv_rwlock_t *) malloc (sizeof (*lock)));
+	NULL_CHECK(dic = (dic_t *) malloc (sizeof (*dic)));
+
+	UV_CHECK(uv_async_init (loop, async, cb));
+	UV_CHECK(uv_rwlock_init (lock));
+
+	dic->async = async;
+	dic->lock = lock;
+	dic->word_id = word_id;
+	dic->did = did;
+
+	w->data = dic;
+	UV_CHECK(uv_queue_work (loop, w, dic_cb, dic_after_cb));
+}
+
+
+extern void
+queue_term (const char *word, int did, int limit, term_cb_t cb)
+{
+	uv_work_t *w;
+	uv_async_t *async;
+	uv_rwlock_t *lock;
+	term_t *term;
 
 
 	NULL_CHECK(w = (uv_work_t *) malloc (sizeof (*w)));
@@ -32,40 +85,98 @@ queue_term (const char *word, academic_did did, unsigned int limit)
 	NULL_CHECK(async = (uv_async_t *) malloc (sizeof (*async)));
 	NULL_CHECK(lock = (uv_rwlock_t *) malloc (sizeof (*lock)));
 
-	UV_CHECK(uv_async_init (loop, async, _term_async_cb));
+	UV_CHECK(uv_async_init (loop, async, cb));
 	UV_CHECK(uv_rwlock_init (lock));
 
 	term->limit = limit;
 	term->did = did;
-	term->query = word;
+	term->word = word;
 	term->async = async;
 	term->lock = lock;
-	w->data = term;
 
+	w->data = term;
 	UV_CHECK(uv_queue_work (loop, w, term_cb, term_after_cb));
 }
 
 
 static void
-_term_async_cb (uv_async_t *handle)
+_term_cb (uv_async_t *handle)
 {
 	term_result_t *t = (term_result_t *) handle->data;
-	term_data_t *list;
-	int i, total;
-
+	term_data_t *e, *end;
+	const char *word;
+	size_t len;
+	int matched = 0;
 
 	if (t != NULL) {
-		vlog (VLOG_TRACE, "%s: cleanup", __func__);
-		list = t->list;
-		total = t->entries;
-		for (i = 0; i < total; i++, list++)
-			vlog (VLOG_TRACE, "id: %s value: %s %d/%d",
-				list->id, list->value, i, total);
+		word = t->word;
+		len = strlen (word);
+
+		for (e = t->list, end = e + t->entries; e < end; e++) {
+			vlog (VLOG_TRACE, "id: %s value: '%s'", e->id, e->value);
+			if (! matched && strncmp (word, e->value, len) == 0)
+				matched = atoi (e->id);
+		}
+
+		handle->data = NULL;
+
+		if (matched > 0)
+			_queue_word_id (matched, t->did, _word_id_cb);
+		else {
+			/* TODO */
+		}
+		
+		_free_term_results (t);
 	}
 	else {
-		vlog (VLOG_TRACE, "%s: nothing to do", __func__);
+		vlog (VLOG_ERROR, "%s: nothing to do", __func__);
 	}
 
 	uv_close ((uv_handle_t *) handle, NULL);
 	free (handle);
+}
+
+
+static void
+_free_term_results (term_result_t *t)
+{
+	term_data_t *e, *end;
+
+
+	vlog (VLOG_TRACE, "%s: %s", __func__, t->word);
+
+	for (e = t->list, end = e + t->entries; e < end; e++) {
+		free (e->id);
+		free (e->value);
+		free (e->info);
+	}
+
+	free (t->list);
+	free (t);
+}
+
+
+static void
+_word_id_cb (uv_async_t *handle)
+{
+	dic_result_t *d = (dic_result_t *) handle->data;
+
+
+	if (d != NULL) {
+		_free_dic_results (d);
+	}
+	else {
+		vlog (VLOG_ERROR, "%s: nothing to do", __func__);
+	}
+
+	uv_close ((uv_handle_t *) handle, NULL);
+	free (handle);
+}
+
+
+static void
+_free_dic_results (dic_result_t *d)
+{
+	vlog (VLOG_TRACE, "%s: %d", __func__, d->word_id);
+	free (d);
 }

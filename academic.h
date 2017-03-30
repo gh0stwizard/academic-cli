@@ -10,7 +10,9 @@
 #endif
 
 typedef enum {
-	/* English -> Russian */
+	/**
+	 * English -> Russian
+	 */
 	/* Универсальный англо-русский словарь */
 	ACADEMIC_DID_UNIVERSAL_EN_RU,
 	/* Большой англо-русский и русско-английский словарь */
@@ -19,6 +21,12 @@ typedef enum {
 	ACADEMIC_DID_ENG_RUS_APRESYAN,
 	/* Англо-русский синонимический словарь */
 	ACADEMIC_DID_SYNONYMUM_EN_RU,
+
+	/**
+	 * Russian -> English
+	 */
+	ACADEMIC_DID_SYNONYMUM_RU_EN,
+
 	/* max limit */
 	ACADEMIC_DID_MAX
 } academic_did;

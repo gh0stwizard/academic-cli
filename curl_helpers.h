@@ -4,6 +4,9 @@
 #include <curl/curl.h>
 
 
+#define MAX_URL_SIZE 1024
+
+
 typedef struct curl_mem_s {
 	char *data;
 	size_t size;
