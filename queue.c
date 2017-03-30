@@ -49,16 +49,23 @@ queue_term (const char *word, academic_did did, unsigned int limit)
 static void
 _term_async_cb (uv_async_t *handle)
 {
-	term_result_t *term = (term_result_t *) handle->data;
-	uv_async_t *async = term->async;
+	term_result_t *t = (term_result_t *) handle->data;
+	term_data_t *list;
+	int i, total;
 
 
-	if (term != NULL) {
+	if (t != NULL) {
 		vlog (VLOG_TRACE, "%s: cleanup", __func__);
-		uv_close ((uv_handle_t *) async, NULL);
-		free (async);
+		list = t->list;
+		total = t->entries;
+		for (i = 0; i < total; i++, list++)
+			vlog (VLOG_TRACE, "id: %s value: %s %d/%d",
+				list->id, list->value, i, total);
 	}
 	else {
 		vlog (VLOG_TRACE, "%s: nothing to do", __func__);
 	}
+
+	uv_close ((uv_handle_t *) handle, NULL);
+	free (handle);
 }

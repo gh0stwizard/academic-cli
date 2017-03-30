@@ -20,7 +20,6 @@ typedef struct term_data_s {
 } term_data_t;
 
 typedef struct term_result_s {
-	uv_async_t *async; /* XXX: baton??? */
 	term_data_t *list;
 	int entries;
 } term_result_t;

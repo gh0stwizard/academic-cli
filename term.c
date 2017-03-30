@@ -29,16 +29,11 @@ dump (const char *js, jsmntok_t *t, size_t count, int indent);
 static int
 parse (const char *js, jsmntok_t *t, size_t count, token_node_t **out);
 
-static int
-get_token_nodes (const char *data, size_t size, token_node_t **out);
-
-#ifdef _DEBUG_TERM
-static void
-dump_nodes (const char *js, token_node_t *nodes, int count);
-#endif
-
 static term_result_t *
-conv_nodes (char *js, token_node_t *nodes, int count);
+conv_nodes (const char *js, token_node_t *nodes, int count);
+
+static int
+get_result (const char *data, size_t size, term_result_t **out);
 
 
 /* ------------------------------------------------------------------ */
@@ -51,8 +46,6 @@ term_cb (uv_work_t *req)
 	term_t *w;
 	char url[MAX_URL_SIZE];
 	curl_mem_t storage;
-	token_node_t *nodes;
-	int nodes_num;
 	term_result_t *result;
 
 
@@ -86,17 +79,7 @@ term_cb (uv_work_t *req)
 	
 	CURL_CHECK(curl_easy_perform (handle));
 
-	nodes_num = get_token_nodes (storage.data, storage.size, &nodes);
-	vlog (VLOG_DEBUG, "%s: %p: nodes = %d", __func__, req, nodes_num);
-#ifdef _DEBUG_TERM
-	dump_nodes (storage.data, nodes, nodes_num);
-#endif
-
-	/* fill results */
-	result = conv_nodes (storage.data, nodes, nodes_num);
-	/* pass back async pointer to main thread */
-	result->async = w->async;
-	result->entries = nodes_num;
+	get_result (storage.data, storage.size, &result);
 	w->async->data = result;
 
 	/* notify main thread that we have finished */
@@ -123,41 +106,6 @@ term_after_cb (uv_work_t *req, int status)
 	req->data = NULL;
 	free (w);
 	free (req);
-}
-
-
-static int
-get_token_nodes (const char *data, size_t size, token_node_t **out)
-{
-	jsmn_parser p;
-	jsmntok_t *tok;
-	int r, count;
-
-
-	jsmn_init (&p);
-	r = jsmn_parse (&p, data, size, NULL, 0);
-
-	if (r > 0) {
-		count = r;
-//		vlog (VLOG_TRACE, "%s: require tokens %d", __func__, count);
-		NULL_CHECK(tok = (jsmntok_t *) malloc (sizeof (*tok) * count));
-
-		/* reset counters */
-		jsmn_init (&p);
-		r = jsmn_parse (&p, data, size, tok, count);
-
-		if (r >= 0) {
-#ifdef _DEBUG_JSMN
-			dump (data, tok, p.toknext, 0);
-#endif
-			r = parse (data, tok, p.toknext, out);
-			
-		}
-
-		free (tok);
-	}
-
-	return r;
 }
 
 
@@ -287,13 +235,12 @@ parse (const char *js, jsmntok_t *tokens, size_t count, token_node_t **out)
 			/* do count only */
 			continue;
 
+		/* TODO: better memory management */
 		if (found == 1) {
-//			vlog (VLOG_TRACE, "%s: allocate token nodes", __func__);
 			*out = (token_node_t *) malloc (sizeof (token_node_t));
 			NULL_CHECK(*out);
 		}
 		else {
-//			vlog (VLOG_TRACE, "%s: reallocate token nodes", __func__);
 			*out = (token_node_t *) realloc 
 				(*out, sizeof (token_node_t) * found);
 			NULL_CHECK(*out);			
@@ -312,36 +259,20 @@ parse (const char *js, jsmntok_t *tokens, size_t count, token_node_t **out)
 }
 
 
-#ifdef _DEBUG_TERM
-static void
-dump_nodes (const char *js, token_node_t *nodes, int count)
-{
-	int i;
-	token_node_t *n;
-
-
-	for (i = 0, n = nodes; i < count; i++, n++)
-		vlog (VLOG_DEBUG, "id: %.*s value: %.*s info: %.*s",
-			n->id->end - n->id->start, js+n->id->start,
-			n->value->end - n->value->start, js+n->value->start,
-			n->info->end - n->info->start, js+n->info->start);
-}
-#endif
-
-
 static term_result_t *
-conv_nodes (char *js, token_node_t *nodes, int count)
+conv_nodes (const char *js, token_node_t *nodes, int count)
 {
 	term_result_t *result;
 	term_data_t *list;
 	term_data_t *listp;
 	token_node_t *n;
-	register int len;
+	int len, i;
 	char *str;
 
 
 	result = (term_result_t *) malloc (sizeof (*result));
 	NULL_CHECK(result);
+	result->entries = count;
 
 	if (count <= 0) {
 		result->list = NULL;
@@ -352,26 +283,20 @@ conv_nodes (char *js, token_node_t *nodes, int count)
 	listp = list;
 	result->list = list;
 
-	n = nodes;
-	for (int i = 0; i < count; i++, n++, listp++) {
-		vlog (VLOG_TRACE, "%s: assemble %d entry", __func__, i);
-
+	for (i = 0, n = nodes; i < count; i++, n++, listp++) {
 		len = n->id->end - n->id->start;
-		vlog (VLOG_TRACE, "%s at %d: len %d", __func__, __LINE__, len);
-		NULL_CHECK(str = malloc (sizeof (*str) * (size_t)(len + 1)));
+		NULL_CHECK(str = malloc (sizeof (*str) * (len + 1)));
 		memcpy (str, js+n->id->start, len);
 		str[len] = '\0';
 		listp->id = str;
 
 		len = n->value->end - n->value->start;
-		vlog (VLOG_TRACE, "%s at %d: len %d", __func__, __LINE__, len);
 		NULL_CHECK(str = malloc (sizeof (*str) * (len + 1)));
 		memcpy (str, js+n->value->start, len);
 		str[len] = '\0';
 		listp->value = str;
 
 		len = n->info->end - n->info->start;
-		vlog (VLOG_TRACE, "%s at %d: len %d", __func__, __LINE__, len);
 		NULL_CHECK(str = malloc (sizeof (*str) * (len + 1)));
 		memcpy (str, js+n->info->start, len);
 		str[len] = '\0';
@@ -379,4 +304,39 @@ conv_nodes (char *js, token_node_t *nodes, int count)
 	}
 
 	return result;
+}
+
+
+static int
+get_result (const char *data, size_t size, term_result_t **out)
+{
+	jsmn_parser p;
+	jsmntok_t *tok;
+	int r, count;
+	token_node_t *nodes;
+
+
+	jsmn_init (&p);
+	r = jsmn_parse (&p, data, size, NULL, 0);
+
+	if (r > 0) {
+		count = r;
+		NULL_CHECK(tok = (jsmntok_t *) malloc (sizeof (*tok) * count));
+
+		/* reset counters */
+		jsmn_init (&p);
+		r = jsmn_parse (&p, data, size, tok, count);
+
+		if (r >= 0) {
+			r = parse (data, tok, p.toknext, &nodes);
+			*out = conv_nodes (data, nodes, r);
+
+			if (nodes != NULL)
+				free (nodes);
+		}
+
+		free (tok);
+	}
+
+	return r;
 }
