@@ -317,7 +317,7 @@ get_result (const char *data, size_t size, term_result_t **out)
 	jsmn_parser p;
 	jsmntok_t *tok;
 	int r, count;
-	token_node_t *nodes;
+	token_node_t *nodes = NULL;
 
 
 	jsmn_init (&p);
