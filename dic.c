@@ -5,6 +5,7 @@
 #include "vlog.h"
 #include "check.h"
 #include "curl_helpers.h"
+#include "html.h"
 
 
 /* ------------------------------------------------------------------ */
@@ -50,6 +51,7 @@ dic_cb (uv_work_t *req)
 	CURL_CHECK(curl_easy_perform (handle));
 
 	vlog (VLOG_TRACE, "%s: data size %zu", __func__, storage.size);
+	parse_html (storage.data, storage.size);
 
 	NULL_CHECK(result = malloc (sizeof (*result)));
 	/* copy query data back that the main thread recogninise it */

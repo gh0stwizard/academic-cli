@@ -1,0 +1,13 @@
+diff --git a/Makefile.cfg b/Makefile.cfg
+index 83ab65c..9105dc6 100644
+--- a/Makefile.cfg
++++ b/Makefile.cfg
+@@ -28,7 +28,7 @@ INCLUDE_DIR_API := include
+ # lib name
+ LIB_NAME := myhtml
+ LIB_NAME_SUFFIX := .so
+-LIB_NAME_SUFFIX_STATIC := _static.a
++LIB_NAME_SUFFIX_STATIC := .a
+ 
+ # lib dirs
+ LIB_DIR_BASE := lib
