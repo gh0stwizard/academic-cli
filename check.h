@@ -7,5 +7,6 @@
 #define CURLM_CHECK(x)	do { assert ((x) == CURLM_OK); } while (0)
 #define NULL_CHECK(x)	do { assert ((x) != NULL); } while (0)
 #define UV_CHECK(x)	do { assert ((x) == 0); } while (0)
+#define MYHTML_CHECK(x)	do { assert ((x) == MyHTML_STATUS_OK); } while (0)
 
 #endif /* CHECK_H__ */

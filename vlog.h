@@ -25,19 +25,19 @@ typedef enum {
 #define VLOG_STR_ALERT	"alert"
 #endif
 #ifndef VLOG_STR_CRIT
-#define VLOG_STR_CRIT	"crit"
+#define VLOG_STR_CRIT	"crit "
 #endif
 #ifndef VLOG_STR_ERR
 #define VLOG_STR_ERR	"error"
 #endif
 #ifndef VLOG_STR_WARN
-#define VLOG_STR_WARN	"warn"
+#define VLOG_STR_WARN	"warn "
 #endif
 #ifndef VLOG_STR_NOTE
-#define VLOG_STR_NOTE	"note"
+#define VLOG_STR_NOTE	"note "
 #endif
 #ifndef VLOG_STR_INFO
-#define VLOG_STR_INFO	"info"
+#define VLOG_STR_INFO	"info "
 #endif
 #ifndef VLOG_STR_DEBUG
 #define VLOG_STR_DEBUG	"debug"
@@ -50,7 +50,10 @@ typedef enum {
 #endif
 
 
+#define vlog(level, fmt, ...) vdebug (__func__, (level), fmt, ## __VA_ARGS__)
+#define vsay(level, fmt, ...) vdebug (NULL, (level), fmt, ## __VA_ARGS__)
+
 extern int
-vlog (vlog_level level, const char *fmt, ...);
+vdebug (const char *prepend, vlog_level level, const char *fmt, ...);
 
 #endif /* DLOGGER_H__ */

@@ -6,41 +6,29 @@
 #include "queue.h"
 #include "check.h"
 #include "loop.h"
+#include "html.h"
+
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
-typedef struct worker_s {
-	CURL *curl;
-	const char *url;
-} worker_t;
 
-
-void
+static void
 init_curl (void);
 
-void
+static void
 fini_curl (void);
 
-void
+static void
 print_curl_version (void);
 
-void
+static void
 print_uv_version (void);
 
-void
+static void
 init_uv (void);
 
-void
+static void
 fini_uv (void);
-
-void
-add_download (const char *url);
-
-void
-curl_work_cb (uv_work_t *req);
-
-void
-curl_after_work_cb (uv_work_t *req, int status);
 
 
 /* ------------------------------------------------------------------ */
@@ -55,6 +43,8 @@ main (int argc, char *argv[])
 {
 	init_curl ();
 	print_curl_version ();
+	init_myhtml ();
+	print_myhtml_version ();
 	init_uv ();
 	print_uv_version ();
 
@@ -71,50 +61,52 @@ main (int argc, char *argv[])
 	uv_run (loop, UV_RUN_DEFAULT);
 
 	fini_uv ();
+	fini_myhtml ();
 	fini_curl ();	
 
 	return 0;
 }
 
 
-void
+static void
 init_curl (void)
 {
 	CURL_CHECK(curl_global_init (CURL_GLOBAL_ALL));
 }
 
 
-void
+static void
 fini_curl (void)
 {
 	curl_global_cleanup ();
 }
 
 
-void
+static void
 print_curl_version (void)
 {
 	curl_version_info_data * nfo = curl_version_info (CURLVERSION_NOW);
 
-	vlog (VLOG_INFO, "Powered by curl version %s", nfo->version);
+	vsay (VLOG_INFO, "Powered by curl version %s", nfo->version);
 }
 
 
-void
+static void
 print_uv_version (void)
 {
-	vlog (VLOG_INFO, "Powered by libuv version %s", uv_version_string ());
+	vsay (VLOG_INFO, "Powered by libuv version %s", uv_version_string ());
 }
 
 
-void
+static void
 init_uv (void)
 {
 	NULL_CHECK(loop = uv_default_loop ());
 }
 
 
-void
+static void
 fini_uv (void)
 {
+	vsay (VLOG_INFO, "Shutdown. Bye-bye!");
 }

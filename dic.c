@@ -16,6 +16,7 @@ dic_cb (uv_work_t *req)
 {
 	CURL *handle;
 	char url[MAX_URL_SIZE];
+	char *term;
 	curl_mem_t storage;
 	dic_t *w;
 	dic_result_t *result;
@@ -25,20 +26,18 @@ dic_cb (uv_work_t *req)
 
 	snprintf (url, MAX_URL_SIZE, academic_durl_fmt[w->did], w->word_id);
 
-	vlog (VLOG_DEBUG, "%s: %d: %s", __func__, w->word_id, url);
+	vlog (VLOG_DEBUG, "%d: %s", w->word_id, url);
 
 	NULL_CHECK(storage.data = malloc (sizeof (char)));
 
 	NULL_CHECK(handle = curl_easy_init ());
 
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_URL, url));
-
 #ifdef _DEBUG_CURL
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_VERBOSE, 1L));
 #else
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_VERBOSE, 0L));
 #endif
-
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_LOW_SPEED_TIME, 3L));
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_LOW_SPEED_LIMIT, 1L));
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_CONNECTTIMEOUT, 30L));
@@ -50,8 +49,12 @@ dic_cb (uv_work_t *req)
 	
 	CURL_CHECK(curl_easy_perform (handle));
 
-	vlog (VLOG_TRACE, "%s: data size %zu", __func__, storage.size);
-	parse_html (storage.data, storage.size);
+	vlog (VLOG_TRACE, "data size %zu", storage.size);
+
+	html_data_t *html;
+	term = parse_html (storage.data, storage.size, &html);
+	vlog (VLOG_TRACE, "term: %s", term);
+	vlog (VLOG_TRACE, html->text);
 
 	NULL_CHECK(result = malloc (sizeof (*result)));
 	/* copy query data back that the main thread recogninise it */
@@ -76,7 +79,7 @@ dic_after_cb (uv_work_t *req, int status)
 
 
 	if (status != 0)
-		vlog (VLOG_ERROR, "%s: %p: status %d", __func__, req, status);
+		vlog (VLOG_ERROR, "%p: status %d", req, status);
 
 	if (w->lock != NULL) {
 		uv_rwlock_destroy (w->lock);

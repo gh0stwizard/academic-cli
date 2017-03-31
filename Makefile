@@ -6,10 +6,12 @@ UV_MODS = libuv
 UV_CFLAGS = $(shell pkg-config --cflags $(UV_MODS))
 UV_LIBS = $(shell pkg-config --libs $(UV_MODS))
 
+MYHTML_CFLAGS = -Imyhtml/include
 MYHTML_LIBS = -Lmyhtml/lib -lmyhtml
 MYHTML_LIBS_STATIC = -Wl,-Bstatic,$(MYHTML_LIBS) -Wl,-Bdynamic
 
-CFLAGS ?= -Wall $(CURL_CFLAGS) $(UV_CFLAGS)
+CFLAGS ?= -Wall
+CFLAGS += $(MYHTML_CFLAGS) $(CURL_CFLAGS) $(UV_CFLAGS)
 CFLAGS += -D_POSIX_C_SOURCE=200809L
 CFLAGS += -D_XOPEN_SOURCE=500
 CFLAGS += -D_GNU_SOURCE
@@ -20,9 +22,9 @@ TARGET = academic-cli
 SOURCES = $(wildcard *.c)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-all: myhtml $(TARGET)
+all: $(TARGET)
 
-devel: CFLAGS += -g -D_DEBUG -Wextra
+devel: CFLAGS += -g -D_DEBUG
 devel: all
 
 $(TARGET): $(OBJECTS)
@@ -36,9 +38,8 @@ $(TARGET): $(OBJECTS)
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-html.o: CFLAGS += -Imyhtml/include
-
-clean: myhtml-clean
+clean:
+	# clean academic-cli
 	$(RM) $(TARGET) $(OBJECTS)
 
 myhtml: myhtml-patch myhtml-library
@@ -64,8 +65,8 @@ myhtml-library:
 	# myhtml-library
 	cd myhtml; $(MAKE) library
 
-myhtml-clean: myhtml-revert-patch
+myhtml-clean:
 	# myhtml-clean
 	cd myhtml; $(MAKE) clean; rm -f myhtml.pc
 
-.PHONY: all devel clean
+.PHONY: all devel clean myhtml

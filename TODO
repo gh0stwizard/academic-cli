@@ -3,3 +3,5 @@
 * store results into database
 * auto-restart curl download if last one has been failed
 * main.c: getopt (unistd.h) support
+* html.c: use myhtml_parse_chunk ()
+* html.c: linked div's

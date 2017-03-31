@@ -24,6 +24,9 @@ _free_term_results (term_result_t *t);
 static void
 _free_dic_results (dic_result_t *d);
 
+static void
+_close_cb (uv_handle_t *handle);
+
 
 /* ------------------------------------------------------------------ */
 
@@ -118,22 +121,20 @@ _term_cb (uv_async_t *handle)
 				matched = atoi (e->id);
 		}
 
-		handle->data = NULL;
-
 		if (matched > 0)
 			_queue_word_id (matched, t->did, _word_id_cb);
 		else {
 			/* TODO */
 		}
 		
+		handle->data = NULL;
 		_free_term_results (t);
 	}
 	else {
 		vlog (VLOG_ERROR, "%s: nothing to do", __func__);
 	}
 
-	uv_close ((uv_handle_t *) handle, NULL);
-	free (handle);
+	uv_close ((uv_handle_t *) handle, _close_cb);
 }
 
 
@@ -145,7 +146,7 @@ _free_term_results (term_result_t *t)
 
 	vlog (VLOG_TRACE, "%s: %s", __func__, t->word);
 
-	for (e = t->list, end = e + t->entries; e < end; e++) {
+	for (e = t->list, end = e + t->entries; e != end; e++) {
 		free (e->id);
 		free (e->value);
 		free (e->info);
@@ -163,14 +164,14 @@ _word_id_cb (uv_async_t *handle)
 
 
 	if (d != NULL) {
+		handle->data = NULL;
 		_free_dic_results (d);
 	}
 	else {
 		vlog (VLOG_ERROR, "%s: nothing to do", __func__);
 	}
 
-	uv_close ((uv_handle_t *) handle, NULL);
-	free (handle);
+	uv_close ((uv_handle_t *) handle, _close_cb);
 }
 
 
@@ -179,4 +180,11 @@ _free_dic_results (dic_result_t *d)
 {
 	vlog (VLOG_TRACE, "%s: %d", __func__, d->word_id);
 	free (d);
+}
+
+
+static void
+_close_cb (uv_handle_t *handle)
+{
+	free (handle);
 }

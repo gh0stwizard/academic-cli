@@ -5,7 +5,7 @@
 
 
 extern int
-vlog (vlog_level level, const char *fmt, ...)
+vdebug (const char *prepend, vlog_level level, const char *fmt, ...)
 {
 	va_list args;
 	char date[TIMEINFO_DATE_SIZE];
@@ -28,8 +28,12 @@ vlog (vlog_level level, const char *fmt, ...)
 
 	va_start (args, fmt);
 
-	if (get_current_time_string (&datep, sizeof (date)))
-		fprintf (stderr, "%s %s ", date, lvlstr);
+	if (get_current_time_string (&datep, sizeof (date))) {
+		if (prepend)
+			fprintf (stderr, "%s %s %s: ", date, lvlstr, prepend);
+		else
+			fprintf (stderr, "%s %s ", date, lvlstr);
+	}
 	else
 		fprintf (stderr, lvlstr);
 
