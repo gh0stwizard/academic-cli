@@ -50,10 +50,13 @@ typedef enum {
 #endif
 
 
-#define vlog(level, fmt, ...) vdebug (__func__, (level), fmt, ## __VA_ARGS__)
-#define vsay(level, fmt, ...) vdebug (NULL, (level), fmt, ## __VA_ARGS__)
+#define vlog(level, fmt, ...) \
+vdebug (__FILE__, __func__, (level), fmt, ## __VA_ARGS__)
 
-extern int
-vdebug (const char *prepend, vlog_level level, const char *fmt, ...);
+#define vsay(level, fmt, ...) \
+vdebug (__FILE__, NULL, (level), fmt, ## __VA_ARGS__)
+
+extern void
+vdebug (const char *file, const char *prepend, vlog_level level, const char *fmt, ...);
 
 #endif /* DLOGGER_H__ */

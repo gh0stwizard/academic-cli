@@ -1,17 +1,22 @@
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include "vlog.h"
 #include "timeinfo.h"
 
 
-extern int
-vdebug (const char *prepend, vlog_level level, const char *fmt, ...)
+extern void
+vdebug (const char *file, const char *prepend, vlog_level level, const char *fmt, ...)
 {
 	va_list args;
 	char date[TIMEINFO_DATE_SIZE];
 	char *datep = date;
 	char *lvlstr = NULL;
 
+#ifndef _DEBUG_HTML
+	if (strcmp (file, "html.c") == 0)
+		return;
+#endif
 
 	switch (level) {
 	case VLOG_FATAL:	lvlstr = VLOG_STR_FATAL; break;
@@ -40,7 +45,4 @@ vdebug (const char *prepend, vlog_level level, const char *fmt, ...)
 	vfprintf (stderr, fmt, args);
 	fprintf (stderr, "\n");
 	va_end (args);
-
-	/* TODO: return value must be useful */
-	return 0;
 }
