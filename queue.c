@@ -131,7 +131,7 @@ _term_cb (uv_async_t *handle)
 		_free_term_results (t);
 	}
 	else {
-		vlog (VLOG_ERROR, "%s: nothing to do", __func__);
+		vlog (VLOG_ERROR, "nothing to do");
 	}
 
 	uv_close ((uv_handle_t *) handle, _close_cb);
@@ -144,7 +144,7 @@ _free_term_results (term_result_t *t)
 	term_data_t *e, *end;
 
 
-	vlog (VLOG_TRACE, "%s: %s", __func__, t->word);
+	vlog (VLOG_TRACE, t->word);
 
 	for (e = t->list, end = e + t->entries; e != end; e++) {
 		free (e->id);
@@ -168,7 +168,7 @@ _word_id_cb (uv_async_t *handle)
 		_free_dic_results (d);
 	}
 	else {
-		vlog (VLOG_ERROR, "%s: nothing to do", __func__);
+		vlog (VLOG_ERROR, "nothing to do");
 	}
 
 	uv_close ((uv_handle_t *) handle, _close_cb);
@@ -178,7 +178,7 @@ _word_id_cb (uv_async_t *handle)
 static void
 _free_dic_results (dic_result_t *d)
 {
-	vlog (VLOG_TRACE, "%s: %d", __func__, d->word_id);
+	vlog (VLOG_TRACE, "%d", d->word_id);
 	free (d);
 }
 

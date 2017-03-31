@@ -17,6 +17,9 @@ myhtml_tree_t *myhtml_tree = NULL;
 static html_data_t *
 get_dd_text (myhtml_tree_node_t *node);
 
+static char *
+get_href (myhtml_tree_node_t *node);
+
 #ifdef _DEBUG_HTML_TREE
 static void
 dump_dd (myhtml_tree_t *tree, myhtml_tree_node_t *node);
@@ -41,16 +44,6 @@ extern void
 fini_myhtml (void)
 {
 	assert (myhtml_destroy (myhtml) == NULL);
-}
-
-
-extern void
-print_myhtml_version (void)
-{
-	myhtml_version_t v = myhtml_version ();
-
-	vsay (VLOG_INFO, "Powered by myhtml version %d.%d.%d",
-		v.major, v.minor, v.patch);
 }
 
 
@@ -180,7 +173,7 @@ get_dd_text (myhtml_tree_node_t *node)
 {
 	char *newtext;
 	int tag_num;
-	int *tags;
+	html_tag_t *tags;
 	html_data_t *list;
 	html_el_t *newels = NULL;
 	size_t len;
@@ -189,8 +182,8 @@ get_dd_text (myhtml_tree_node_t *node)
 
 
 	NULL_CHECK(list = malloc (sizeof (*list)));
-
 	NULL_CHECK(list->text = malloc (sizeof (char)));
+
 	list->els = NULL;
 	list->el_count = 0;
 	list->size = 1;
@@ -250,10 +243,19 @@ get_dd_text (myhtml_tree_node_t *node)
 				}
 
 				NULL_CHECK(tags = malloc (sizeof (*tags) * tag_num));
+				list->els[list->el_count].tag_count = tag_num;
 
 				while (--tag_num >= 0) {
 					node = myhtml_node_parent (node);
-					tags[tag_num] = get_tagid (node);
+					tags[tag_num].tag_id = get_tagid (node);
+
+					if (tags[tag_num].tag_id == MyHTML_TAG_A) {
+						tags[tag_num].href = get_href (node);
+						vlog (VLOG_TRACE, "href: %s", tags[tag_num].href);
+					}
+					else {
+						tags[tag_num].href = NULL;
+					}
 				}
 
 				list->els[list->el_count].tags = tags;
@@ -322,12 +324,51 @@ get_dd_text (myhtml_tree_node_t *node)
 
 
 extern void
-free_html_data (html_data_t *html_data)
+free_html_data (html_data_t *d)
 {
-	if (html_data == NULL)
+	size_t i, j, elnum, tagnum;
+	html_el_t *el;
+
+
+	if (d == NULL)
 		return;
 
-	
+	if (d->text)
+		free (d->text);
+
+	if (d->els) {
+		el = d->els;
+
+		for (i = 0, elnum = d->el_count; i < elnum; i++, el++) {
+			for (j = 0, tagnum = el->tag_count; j < tagnum; j++) {
+				if (el->tags[j].href)
+					free (el->tags[j].href);
+			}
+		}
+
+		free (d->els);
+	}
+}
+
+
+static char *
+get_href (myhtml_tree_node_t *node)
+{
+	char *result = NULL;
+	size_t len = 0;
+	/*XXX: do I need to release it??? */
+	myhtml_tree_attr_t *attr = myhtml_attribute_by_key (node, "href", 4);
+
+
+	if (attr) {
+		const char *href = myhtml_attribute_value (attr, &len);
+		NULL_CHECK(result = malloc (len + 1));
+		memcpy (result, href, len);
+		result[len] = '\0';
+	}
+
+
+	return result;
 }
 
 

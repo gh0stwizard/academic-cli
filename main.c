@@ -30,6 +30,9 @@ init_uv (void);
 static void
 fini_uv (void);
 
+static void
+print_myhtml_version (void);
+
 
 /* ------------------------------------------------------------------ */
 
@@ -109,4 +112,14 @@ static void
 fini_uv (void)
 {
 	vsay (VLOG_INFO, "Shutdown. Bye-bye!");
+}
+
+
+static void
+print_myhtml_version (void)
+{
+	myhtml_version_t v = myhtml_version ();
+
+	vsay (VLOG_INFO, "Powered by myhtml version %d.%d.%d",
+		v.major, v.minor, v.patch);
 }

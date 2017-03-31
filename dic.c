@@ -55,6 +55,7 @@ dic_cb (uv_work_t *req)
 	term = parse_html (storage.data, storage.size, &html);
 	vlog (VLOG_TRACE, "term: %s", term);
 	vlog (VLOG_TRACE, html->text);
+	free_html_data (html);
 
 	NULL_CHECK(result = malloc (sizeof (*result)));
 	/* copy query data back that the main thread recogninise it */
