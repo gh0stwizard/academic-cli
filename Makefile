@@ -46,7 +46,7 @@ myhtml: myhtml-patch myhtml-library
 myhtml-patch: myhtml-revert-patch
 	# myhtml-patch
 	cd myhtml; \
-	patch -p1 -N -i ../patch_myhtml_static.diff
+	patch -p1 -N -i ../patches/myhtml_01.diff
 
 myhtml-revert-patch:
 	# myhtml-revert-patch
@@ -64,8 +64,8 @@ myhtml-library:
 	# myhtml-library
 	cd myhtml; $(MAKE) library
 
-myhtml-clean: myhtml-patch
+myhtml-clean: myhtml-revert-patch
 	# myhtml-clean
-	cd myhtml; $(MAKE) clean; rm myhtml.pc
+	cd myhtml; $(MAKE) clean; rm -f myhtml.pc
 
 .PHONY: all devel clean
