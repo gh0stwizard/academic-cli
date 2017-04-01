@@ -7,6 +7,7 @@
 #include "check.h"
 #include "loop.h"
 #include "vlog.h"
+#include "output.h"
 
 
 static void
@@ -168,7 +169,7 @@ _word_id_cb (uv_async_t *handle)
 
 
 	if (d != NULL) {
-		vlog (VLOG_TRACE, "%s: %s", d->term, d->data->text);
+		say (d->data->text);
 
 		handle->data = NULL;
 		_free_dic_results (d);

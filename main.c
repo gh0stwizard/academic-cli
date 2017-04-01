@@ -97,9 +97,11 @@ fini_curl (void)
 static void
 print_curl_version (void)
 {
+#ifdef _DEBUG
 	curl_version_info_data * nfo = curl_version_info (CURLVERSION_NOW);
 
 	vsay (VLOG_INFO, "Powered by curl version %s", nfo->version);
+#endif
 }
 
 
@@ -138,10 +140,12 @@ fini_uv (void)
 static void
 print_myhtml_version (void)
 {
+#ifdef _DEBUG
 	myhtml_version_t v = myhtml_version ();
 
 	vsay (VLOG_INFO, "Powered by myhtml version %d.%d.%d",
 		v.major, v.minor, v.patch);
+#endif
 }
 
 

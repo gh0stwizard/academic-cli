@@ -4,7 +4,7 @@
 #include "uv_tty.h"
 
 
-enum {
+typedef enum {
 	SGR_RESET = 0,
 	SGR_NORMAL = 0,
 	SGR_BOLD,
@@ -38,7 +38,7 @@ enum {
 	SGR_COLOR_WHITE_BG,
 	SGR_COLOR_DEFAULT_BG,
 	SGR_MAX
-} typedef SGR;
+} SGR;
 
 extern void
 say (const char *fmt, ...);

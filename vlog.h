@@ -49,12 +49,15 @@ typedef enum {
 #define VLOG_STR_NONE	""
 #endif
 
-
+#ifdef _DEBUG
 #define vlog(level, fmt, ...) \
 vdebug (__FILE__, __func__, (level), fmt, ## __VA_ARGS__)
-
 #define vsay(level, fmt, ...) \
 vdebug (__FILE__, NULL, (level), fmt, ## __VA_ARGS__)
+#else /* -U_DEBUG */
+#define vlog(level, fmt, ...) 
+#define vsay(level, fmt, ...) 
+#endif /* _DEBUG */
 
 extern void
 vdebug (const char *file, const char *prepend, vlog_level level, const char *fmt, ...);

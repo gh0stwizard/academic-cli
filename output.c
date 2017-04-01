@@ -68,7 +68,6 @@ say (const char *fmt, ...)
 			SGR_UNDERLINE
 		};
 		char *csi = create_csi (opt, sizeof (opt) / sizeof (opt[0]));
-		//printf ("%s\n", red+2);
 		offset = strlen (csi);
 		snprintf (str, STRING_SIZE, csi);
 		end = EOL ESC RESET SGR_MOD;
@@ -76,8 +75,9 @@ say (const char *fmt, ...)
 	}
 
 	va_start (args, fmt);
-	vsnprintf (str + offset, STRING_SIZE - 1, fmt, args);
-	snprintf (str + strlen (str), STRING_SIZE, end);
+	vsnprintf (str + offset, STRING_SIZE - offset, fmt, args);
+	offset = strlen (str) - strlen (end);
+	snprintf (str + offset, STRING_SIZE - offset, end);
 	va_end (args);
 	
 	buf = uv_buf_init (str, strlen (str));
