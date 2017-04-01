@@ -3,6 +3,7 @@
 
 #include <uv.h>
 #include "academic.h"
+#include "html.h"
 
 
 typedef struct dic_s {
@@ -15,6 +16,8 @@ typedef struct dic_s {
 typedef struct dic_result_s {
 	int word_id;
 	int did;
+	char *term;
+	html_data_t *data;
 } dic_result_t;
 
 

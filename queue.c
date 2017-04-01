@@ -121,10 +121,14 @@ _term_cb (uv_async_t *handle)
 				matched = atoi (e->id);
 		}
 
-		if (matched > 0)
+		if (matched > 0) {
+			vlog (VLOG_TRACE, "%s: exact match by id %d", word, matched);
 			_queue_word_id (matched, t->did, _word_id_cb);
+		}
 		else {
 			/* TODO */
+			vlog (VLOG_NOTE, "%s: no exact match, %d available",
+				word, t->entries);
 		}
 		
 		handle->data = NULL;
@@ -164,6 +168,8 @@ _word_id_cb (uv_async_t *handle)
 
 
 	if (d != NULL) {
+		vlog (VLOG_TRACE, "%s: %s", d->term, d->data->text);
+
 		handle->data = NULL;
 		_free_dic_results (d);
 	}
@@ -179,6 +185,13 @@ static void
 _free_dic_results (dic_result_t *d)
 {
 	vlog (VLOG_TRACE, "%d", d->word_id);
+
+	if (d->term)
+		free (d->term);
+
+	if (d->data)
+		free_html_data (d->data);
+
 	free (d);
 }
 

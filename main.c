@@ -7,6 +7,7 @@
 #include "check.h"
 #include "loop.h"
 #include "html.h"
+#include "output.h"
 
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -33,10 +34,17 @@ fini_uv (void);
 static void
 print_myhtml_version (void);
 
+static void
+sig_int_cb (uv_signal_t *handle, int signum);
+
+static void
+sig_term_cb (uv_signal_t *handle, int signum);
+
 
 /* ------------------------------------------------------------------ */
 
 uv_loop_t *loop;
+static uv_signal_t sig_int, sig_term;
 
 /* ------------------------------------------------------------------ */
 
@@ -58,6 +66,7 @@ main (int argc, char *argv[])
 	};
 
 	while (argc-- > 1) {
+		say ("looking for '%s'", argv[argc]);
 		queue_word (argv[argc], did, ARRAY_SIZE(did));
 	}
 
@@ -105,6 +114,17 @@ static void
 init_uv (void)
 {
 	NULL_CHECK(loop = uv_default_loop ());
+
+	init_tty ();
+
+	uv_signal_init (loop, &sig_int);
+	uv_signal_start (&sig_int, sig_int_cb, SIGINT);
+
+	uv_signal_init (loop, &sig_term);
+	uv_signal_start (&sig_term, sig_term_cb, SIGTERM);
+
+	uv_unref ((uv_handle_t*) &sig_int);
+	uv_unref ((uv_handle_t*) &sig_term);
 }
 
 
@@ -122,4 +142,22 @@ print_myhtml_version (void)
 
 	vsay (VLOG_INFO, "Powered by myhtml version %d.%d.%d",
 		v.major, v.minor, v.patch);
+}
+
+
+static void
+sig_int_cb (uv_signal_t *handle, int signum)
+{
+	vlog (VLOG_TRACE, "SIGINT");
+	uv_signal_stop (handle);
+	uv_stop (loop);
+}
+
+
+static void
+sig_term_cb (uv_signal_t *handle, int signum)
+{
+	vlog (VLOG_TRACE, "SIGTERM");
+	uv_signal_stop (handle);
+	uv_stop (loop);
 }

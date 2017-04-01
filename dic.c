@@ -20,6 +20,7 @@ dic_cb (uv_work_t *req)
 	curl_mem_t storage;
 	dic_t *w;
 	dic_result_t *result;
+	html_data_t *html;
 
 
 	w = (dic_t *) req->data;
@@ -51,16 +52,14 @@ dic_cb (uv_work_t *req)
 
 	vlog (VLOG_TRACE, "data size %zu", storage.size);
 
-	html_data_t *html;
 	term = parse_html (storage.data, storage.size, &html);
-	vlog (VLOG_TRACE, "term: %s", term);
-	vlog (VLOG_TRACE, html->text);
-	free_html_data (html);
 
 	NULL_CHECK(result = malloc (sizeof (*result)));
 	/* copy query data back that the main thread recogninise it */
 	result->word_id = w->word_id;
 	result->did = w->did;
+	result->data = html;
+	result->term = term;
 	/* write result & send it to main thread */
 	uv_rwlock_wrlock (w->lock);
 	w->async->data = result;

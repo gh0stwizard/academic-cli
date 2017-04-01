@@ -5,3 +5,4 @@
 * main.c: getopt (unistd.h) support
 * html.c: use myhtml_parse_chunk ()
 * html.c: linked div's
+* use uv_cancel() for queued jobs
