@@ -41,6 +41,7 @@ parse_json (const char *data, size_t size, term_result_t **out)
 
 	jsmn_init (&p);
 	r = jsmn_parse (&p, data, size, NULL, 0);
+	*out = NULL;
 
 	if (r > 0) {
 		count = r;

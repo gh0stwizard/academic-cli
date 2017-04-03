@@ -1,21 +1,23 @@
 #ifndef VLOG_H__
 #define VLOG_H__
 
+#include "uvls.h"
+
 typedef enum {
-	VLOG_NONE = 0,
-	VLOG_FATAL = 1,
-	VLOG_ALERT = 2,
-	VLOG_CRITICAL = 3,
-	VLOG_CRIT = 3,
-	VLOG_ERROR = 4,
-	VLOG_ERR = 4,
-	VLOG_WARNING = 5,
-	VLOG_WARN = 5,
-	VLOG_NOTICE = 6,
-	VLOG_NOTE = 6,
-	VLOG_INFO = 7,
-	VLOG_DEBUG = 8,
-	VLOG_TRACE = 9
+	VLOG_NONE		= 0,
+	VLOG_FATAL		= 1,
+	VLOG_ALERT		= 2,
+	VLOG_CRITICAL	= 3,
+	VLOG_CRIT		= 3,
+	VLOG_ERROR		= 4,
+	VLOG_ERR		= 4,
+	VLOG_WARNING	= 5,
+	VLOG_WARN		= 5,
+	VLOG_NOTICE		= 6,
+	VLOG_NOTE		= 6,
+	VLOG_INFO		= 7,
+	VLOG_DEBUG		= 8,
+	VLOG_TRACE		= 9
 } vlog_level;
 
 #ifndef VLOG_STR_FATAL
@@ -50,16 +52,18 @@ typedef enum {
 #endif
 
 #ifdef _DEBUG
-#define vlog(level, fmt, ...) \
-vdebug (__FILE__, __func__, (level), fmt, ## __VA_ARGS__)
-#define vsay(level, fmt, ...) \
-vdebug (__FILE__, NULL, (level), fmt, ## __VA_ARGS__)
+#define vlog(level, ...) vdebug(__FILE__,__func__,__LINE__,(level),__VA_ARGS__)
+#define vsay(level, ...) vdebug(NULL, NULL, 0, (level), __VA_ARGS__)
 #else /* -U_DEBUG */
-#define vlog(level, fmt, ...) 
-#define vsay(level, fmt, ...) 
+#define vlog(level, ...) 
+#define vsay(level, ...) 
 #endif /* _DEBUG */
 
-extern void
-vdebug (const char *file, const char *prepend, vlog_level level, const char *fmt, ...);
+extern size_t
+vdebug (const char *file,
+		const char *func,
+		unsigned int line,
+		vlog_level level,
+		const char *fmt, ...);
 
 #endif /* DLOGGER_H__ */

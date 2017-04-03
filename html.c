@@ -179,7 +179,7 @@ get_dd_text (myhtml_tree_node_t *node)
 	size_t len;
 	myhtml_tree_node_t *prev, *begin;
 	myhtml_tree_node_t *div = NULL, *div_parent = NULL;
-
+	int skip = 0;
 
 	NULL_CHECK(list = malloc (sizeof (*list)));
 	NULL_CHECK(list->text = malloc (sizeof (char)));
@@ -192,16 +192,32 @@ get_dd_text (myhtml_tree_node_t *node)
 #define get_tagid(n) myhtml_token_node_tag_id (myhtml_node_token ((n)))
 
 	while (node) {
-		if (get_tagid (node) == MyHTML_TAG_DIV) {
-			vlog (VLOG_TRACE, "div: entry point");
+		skip = 1;
+		switch (get_tagid (node)) {
+			case MyHTML_TAG__COMMENT:
+			case MyHTML_TAG_IFRAME:
+			case MyHTML_TAG_SCRIPT:
+				node = myhtml_node_next (node);
+				break;
+			case MyHTML_TAG_DIV:
+				vlog (VLOG_TRACE, "div: entry point");
 
-			if (div) /* TODO */
-				abort ();
-
-			div = node;
-			node = myhtml_node_child (node);
-			continue;
+				if (div) /* TODO */ {
+					vlog (VLOG_TRACE, "div: found inferor");
+					node = myhtml_node_next (node);
+				}
+				else {
+					div = node;
+					node = myhtml_node_child (node);
+				}
+				break;
+			default:
+				skip = 0;
+				break;
 		}
+
+		if (skip)
+			continue;
 
 		begin = node;
 		prev = node;
@@ -227,8 +243,9 @@ get_dd_text (myhtml_tree_node_t *node)
 			len = strlen (ntxt);
 			list->size += len;
 			NULL_CHECK(newtext = realloc (list->text, list->size));
-			memcpy (newtext + list->length, ntxt, len);
 			list->text = newtext;
+			memcpy (newtext + list->length, ntxt, len);
+			
 
 			if (tag_num > 0) {
 				if (list->els == NULL) {
@@ -318,6 +335,7 @@ get_dd_text (myhtml_tree_node_t *node)
 #undef get_tagid
 
 	list->text[list->length] = '\0';
+	vlog (VLOG_TRACE, "parsing completed");
 
 	return list;
 }

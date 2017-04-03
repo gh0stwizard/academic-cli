@@ -26,9 +26,10 @@ extern void
 uvls_destroy (void);
 
 #define uvls_puts(str) uvls_fprintf (uvls_out, "%s\n", (str))
-#define uvls_printf(fmt, ...) uvls_fprintf (uvls_out, (fmt), __VA_ARGS__)
-#define uvls_log(str) uvls_flogf (uvls_err, "%s\n", (str))
-#define uvls_logf(fmt, ...) uvls_flogf (uvls_err, (fmt), __VA_ARGS__)
+#define uvls_printf(...) uvls_fprintf (uvls_out, __VA_ARGS__)
+#define uvls_log(str) uvls_fprintf (uvls_err, "%s\n", (str))
+#define uvls_logf(...) uvls_fprintf (uvls_err, __VA_ARGS__)
+#define uvls_vlogf(fmt, ap) uvls_vprintf (uvls_err, (fmt), (ap))
 
 extern size_t
 uvls_fprintf (uv_stream_t *stream, const char *fmt, ...);
@@ -38,5 +39,8 @@ uvls_vprintf (uv_stream_t *stream, const char *fmt, va_list ap);
 
 extern size_t
 uvls_flogf (uv_stream_t *stream, const char *fmt, ...);
+
+extern size_t
+uvls_date (const char *fmt, char date[], size_t size);
 
 #endif /* UVLS_H__ */

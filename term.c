@@ -52,19 +52,25 @@ term_cb (uv_work_t *req)
 	
 	CURL_CHECK(curl_easy_perform (handle));
 
+	vlog (VLOG_TRACE, "%s: parsing json data...", w->word);
 	parse_json (storage.data, storage.size, &result);
+
 	/* copy query data back that the main thread recogninise it */
-	result->word = w->word;
-	result->did = w->did;
+	if (result) {
+		result->word = w->word;
+		result->did = w->did;
+	}
 	/* write result & send it to main thread */
 	uv_rwlock_wrlock (w->lock);
 	w->async->data = result;
 	uv_rwlock_wrunlock (w->lock);
-	/* notify main thread that we have finished */
-	uv_async_send (w->async);
 
-	curl_easy_cleanup (handle);
+	/* notify main thread that we have finished */
+	vlog (VLOG_TRACE, "%s: sending results...", w->word);
+	UV_CHECK(uv_async_send (w->async));
+
 	free (storage.data);
+	curl_easy_cleanup (handle);
 }
 
 
@@ -74,6 +80,8 @@ term_after_cb (uv_work_t *req, int status)
 	term_t *w = (term_t *) req->data;
 
 
+	vlog (VLOG_TRACE, "%s: done; status %d", w->word, status);
+
 	if (status != 0)
 		vlog (VLOG_ERROR, "%p: status %d", req, status);
 
@@ -82,7 +90,6 @@ term_after_cb (uv_work_t *req, int status)
 		free (w->lock);
 	}
 
-	req->data = NULL;
 	free (w);
 	free (req);
 }

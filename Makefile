@@ -26,6 +26,7 @@ all: $(TARGET)
 
 devel: CFLAGS += -g -D_DEBUG
 #devel: CFLAGS += -D_DEBUG_HTML
+#devel: CFLAGS += -D_DEBUG_CURL
 devel: all
 
 $(TARGET): $(OBJECTS)

@@ -112,13 +112,18 @@ _term_cb (uv_async_t *handle)
 	size_t len;
 	int matched = 0;
 
+
 	if (t != NULL) {
 		word = t->word;
 		len = strlen (word);
+		e = t->list;
+		end = e + t->entries;
 
-		for (e = t->list, end = e + t->entries; e < end; e++) {
+		vlog (VLOG_TRACE, "%s: got term results %d", word, t->entries);
+
+		for (; e != end && ! matched; e++) {
 			vlog (VLOG_TRACE, "id: %s value: '%s'", e->id, e->value);
-			if (! matched && strncmp (word, e->value, len) == 0)
+			if (strncmp (word, e->value, len + 1) == 0)
 				matched = atoi (e->id);
 		}
 
@@ -132,7 +137,6 @@ _term_cb (uv_async_t *handle)
 				word, t->entries);
 		}
 		
-		handle->data = NULL;
 		_free_term_results (t);
 	}
 	else {
@@ -169,7 +173,7 @@ _word_id_cb (uv_async_t *handle)
 
 
 	if (d != NULL) {
-		say (d->data->text);
+		vlog (VLOG_DEBUG, d->data->text);
 
 		handle->data = NULL;
 		_free_dic_results (d);

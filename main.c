@@ -13,6 +13,15 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 
+typedef struct timer_arg_s {
+	int argc;
+	char **argv;
+} timer_arg_t;
+
+
+/* ------------------------------------------------------------------ */
+
+
 static void
 init_curl (void);
 
@@ -40,11 +49,15 @@ sig_int_cb (uv_signal_t *handle, int signum);
 static void
 sig_term_cb (uv_signal_t *handle, int signum);
 
+static void
+timer_arg_cb (uv_timer_t *handle);
+
 
 /* ------------------------------------------------------------------ */
 
 uv_loop_t *loop;
 static uv_signal_t sig_int, sig_term;
+static uv_timer_t timer_arg;
 
 /* ------------------------------------------------------------------ */
 
@@ -52,23 +65,21 @@ static uv_signal_t sig_int, sig_term;
 extern int
 main (int argc, char *argv[])
 {
+	timer_arg_t *myargs;
+
+
 	init_curl ();
-	print_curl_version ();
 	init_myhtml ();
-	print_myhtml_version ();
 	init_uv ();
+
+	print_curl_version ();
+	print_myhtml_version ();
 	print_uv_version ();
 
-	int did[] = {
-//		ACADEMIC_DID_SYNONYMUM_RU_EN,
-		ACADEMIC_DID_SYNONYMUM_EN_RU,
-//		ACADEMIC_DID_UNIVERSAL_EN_RU,
-	};
-
-	while (argc-- > 1) {
-		say ("looking for '%s'", argv[argc]);
-		queue_word (argv[argc], did, ARRAY_SIZE(did));
-	}
+	NULL_CHECK(myargs = malloc (sizeof (*myargs)));
+	myargs->argc = argc;
+	myargs->argv = argv;
+	timer_arg.data = (void *) myargs;
 
 	uv_run (loop, UV_RUN_DEFAULT);
 
@@ -117,7 +128,7 @@ init_uv (void)
 {
 	NULL_CHECK(loop = uv_default_loop ());
 
-	init_tty ();
+	
 
 	uv_signal_init (loop, &sig_int);
 	uv_signal_start (&sig_int, sig_int_cb, SIGINT);
@@ -127,12 +138,18 @@ init_uv (void)
 
 	uv_unref ((uv_handle_t*) &sig_int);
 	uv_unref ((uv_handle_t*) &sig_term);
+
+	uv_timer_init (loop, &timer_arg);
+	uv_timer_start (&timer_arg, timer_arg_cb, 100, 0);
+
+	uvls_init (loop);
 }
 
 
 static void
 fini_uv (void)
 {
+	uvls_destroy ();
 	vsay (VLOG_INFO, "Shutdown. Bye-bye!");
 }
 
@@ -154,7 +171,6 @@ sig_int_cb (uv_signal_t *handle, int signum)
 {
 	vlog (VLOG_TRACE, "SIGINT");
 	uv_signal_stop (handle);
-	uv_stop (loop);
 }
 
 
@@ -163,5 +179,27 @@ sig_term_cb (uv_signal_t *handle, int signum)
 {
 	vlog (VLOG_TRACE, "SIGTERM");
 	uv_signal_stop (handle);
-	uv_stop (loop);
+}
+
+
+static void
+timer_arg_cb (uv_timer_t *handle)
+{
+	timer_arg_t *args = (timer_arg_t *) handle->data;
+	int argc = args->argc;
+	char **argv = args->argv;
+
+
+	int did[] = {
+//		ACADEMIC_DID_SYNONYMUM_RU_EN,
+		ACADEMIC_DID_SYNONYMUM_EN_RU,
+//		ACADEMIC_DID_UNIVERSAL_EN_RU,
+	};
+
+	while (argc-- > 1) {
+		queue_word (argv[argc], did, ARRAY_SIZE(did));
+	}
+
+	free (args);
+	uv_timer_stop (handle);
 }

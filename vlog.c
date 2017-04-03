@@ -1,48 +1,62 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <string.h>
+#include <stdarg.h>
 #include "vlog.h"
-#include "timeinfo.h"
 
 
-extern void
-vdebug (const char *file, const char *prepend, vlog_level level, const char *fmt, ...)
+#define HEADER_SIZE 256
+
+extern size_t
+vdebug (const char *file,
+		const char *func,
+		unsigned int line,
+		vlog_level level,
+		const char *fmt, ...)
 {
-	va_list args;
-	char date[TIMEINFO_DATE_SIZE];
-	char *datep = date;
+	va_list ap;
+	char header[HEADER_SIZE];
 	char *lvlstr = NULL;
+	size_t len, hlen;
 
-#ifndef _DEBUG_HTML
-	if (strcmp (file, "html.c") == 0)
-		return;
-#endif
 
 	switch (level) {
-	case VLOG_FATAL:	lvlstr = VLOG_STR_FATAL; break;
-	case VLOG_ALERT:	lvlstr = VLOG_STR_ALERT; break;
-	case VLOG_CRITICAL:	lvlstr = VLOG_STR_CRIT; break;
-	case VLOG_ERROR:	lvlstr = VLOG_STR_ERR; break;
-	case VLOG_WARNING:	lvlstr = VLOG_STR_WARN; break;
-	case VLOG_NOTICE:	lvlstr = VLOG_STR_NOTE; break;
-	case VLOG_INFO:		lvlstr = VLOG_STR_INFO; break;
-	case VLOG_DEBUG:	lvlstr = VLOG_STR_DEBUG; break;
-	case VLOG_TRACE:	lvlstr = VLOG_STR_TRACE; break;
-	default:		lvlstr = VLOG_STR_NONE; break;
+	case VLOG_FATAL:	lvlstr = VLOG_STR_FATAL	" "; break;
+	case VLOG_ALERT:	lvlstr = VLOG_STR_ALERT	" "; break;
+	case VLOG_CRITICAL:	lvlstr = VLOG_STR_CRIT	" "; break;
+	case VLOG_ERROR:	lvlstr = VLOG_STR_ERR	" "; break;
+	case VLOG_WARNING:	lvlstr = VLOG_STR_WARN	" "; break;
+	case VLOG_NOTICE:	lvlstr = VLOG_STR_NOTE	" "; break;
+	case VLOG_INFO:		lvlstr = VLOG_STR_INFO	" "; break;
+	case VLOG_DEBUG:	lvlstr = VLOG_STR_DEBUG	" "; break;
+	case VLOG_TRACE:	lvlstr = VLOG_STR_TRACE	" "; break;
+	default:			lvlstr = VLOG_STR_NONE	" "; break;
 	}
 
-	va_start (args, fmt);
+	len = strlen (lvlstr);
+	hlen = uvls_date (UVLS_DATE_FMT, header, HEADER_SIZE);
+	header[hlen] = ' ';
+	memcpy (header + hlen + 1, lvlstr, len);
+	hlen += len + 1;
 
-	if (get_current_time_string (&datep, sizeof (date))) {
-		if (prepend)
-			fprintf (stderr, "%s %s %s: ", date, lvlstr, prepend);
-		else
-			fprintf (stderr, "%s %s ", date, lvlstr);
+	if (file) {
+		sprintf (header + hlen, "%s: ", file);
+		hlen = strlen (header);
 	}
-	else
-		fprintf (stderr, lvlstr);
 
-	vfprintf (stderr, fmt, args);
-	fprintf (stderr, "\n");
-	va_end (args);
+	if (func) {
+		sprintf (header + hlen, "%s:%d ", func, line);
+		hlen = strlen (header);
+	}
+
+	header[hlen] = '\0';
+
+	len = uvls_logf (header);
+
+	va_start (ap, fmt);
+	len += uvls_vlogf (fmt, ap);
+	va_end (ap);
+
+	len += uvls_logf ("\n");
+
+	return len;
 }

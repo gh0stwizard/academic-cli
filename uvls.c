@@ -15,6 +15,8 @@
 #define NULL_CHECK(x) do { assert ((x) != NULL); } while (0)
 #endif
 
+#define MAX_QUEUED 16
+
 
 /* ------------------------------------------------------------------ */
 
@@ -29,12 +31,12 @@ typedef struct {
 static uv_tty_t tty_out;
 static uv_tty_t tty_err;
 
-static struct timespec ts_prev;
-static uint64_t hr_prev;
+static struct timespec ts;
+static uint64_t hr;
 
 static uv_once_t guard = UV_ONCE_INIT;
 static uv_loop_t *myloop;
-static uv_mutex_t mylock;
+static uv_mutex_t timelock;
 
 /* ------------------------------------------------------------------ */
 
@@ -46,6 +48,9 @@ free_write_req (uv_write_t *req);
 
 static void
 uvls_init_once (void);
+
+inline static void
+uvls_update_time (void);
 
 /* ------------------------------------------------------------------ */
 
@@ -80,17 +85,17 @@ uvls_init_once (void)
 			((uv_tty_t *) uvls_err, UV_TTY_MODE_NORMAL));
 	}
 
-	CHECK(clock_gettime (CLOCK_REALTIME, &ts_prev));
-	hr_prev = uv_hrtime ();
+	CHECK(clock_gettime (CLOCK_REALTIME, &ts));
+	hr = uv_hrtime ();
 
-	CHECK(uv_mutex_init (&mylock));
+	CHECK(uv_mutex_init (&timelock));
 }
 
 
 extern void
 uvls_destroy (void)
 {
-	uv_mutex_destroy (&mylock);
+	uv_mutex_destroy (&timelock);
 	uv_tty_reset_mode ();
 }
 
@@ -100,7 +105,6 @@ uvls_fprintf (uv_stream_t *stream, const char *fmt, ...)
 {
 	size_t r;
 	va_list ap;
-
 
 	va_start (ap, fmt);
 	r = uvls_vprintf (stream, fmt, ap);
@@ -123,24 +127,20 @@ uvls_vprintf (uv_stream_t *stream, const char *fmt, va_list ap)
 	if (fmt == NULL || strlen (fmt) == 0)
 		return UV_EINVAL;
 
-	data = malloc (sizeof (*data) * data_size);
-	NULL_CHECK(data);
+	NULL_CHECK(req = (write_req_t *) malloc (sizeof (*req)));
+	NULL_CHECK(data = malloc (sizeof (*data) * data_size));
 
 	vsnprintf (data, data_size, fmt, ap);
-
 	data_len = strlen (data);
 	while (data_len == (data_size - 1)) {
 		data_size *= UVLS_BUFFER_FACTOR;
-		newdata = realloc (data, data_size);
-		NULL_CHECK(newdata);
+		NULL_CHECK(newdata = realloc (data, data_size));
 		data = newdata;
 		va_copy (apcopy, ap);
 		vsnprintf (data, data_size, fmt, apcopy);
 		data_len += strlen (data + data_len);
 	}
-
-	req = (write_req_t *) malloc (sizeof (*req));
-	NULL_CHECK(req);
+	
 	req->buf = uv_buf_init (data, data_len);
 	uv_write ((uv_write_t *) req, stream, &req->buf, 1, write_cb);
 
@@ -151,48 +151,13 @@ uvls_vprintf (uv_stream_t *stream, const char *fmt, va_list ap)
 extern size_t
 uvls_flogf (uv_stream_t *stream, const char *fmt, ...)
 {
-	struct timespec ts;
-	struct tm *tmp;
-	uint64_t hr_now, hr_delta;
 	char date[UVLS_DATE_SIZE];
-	size_t date_len;
 	va_list ap;
 	size_t result;
-	/* nanoseconds part */
-	char nstr[UVLS_NSEC_SIZE + 1];
-	long x;
-	int len;
 
 
-	hr_now = uv_hrtime ();
-	hr_delta = hr_now - hr_prev;
-	ts = ts_prev;
-	ts.tv_sec += hr_delta / 1000000000;
-	/* prevent tv_nsec overflow */
-	ts.tv_nsec += hr_delta % 1000000000;
-	ts.tv_nsec %= 1000000000;
-	/* c.s. */
-	uv_mutex_lock (&mylock);
-	ts_prev = ts;
-	hr_prev = hr_now;
-	uv_mutex_unlock (&mylock);
-	/* create date string */
-	NULL_CHECK(tmp = localtime (&ts.tv_sec));
-	date_len = strftime (date, UVLS_DATE_SIZE, UVLS_DATE_FMT, tmp);
-	CHECK_0(date_len);
-	/* nanosecs: prepend zeros */
-	memset (nstr, '0', UVLS_NSEC_SIZE - 1);
-	for (len = 0, x = ts.tv_nsec;
-		(x != 0) && (len < UVLS_NSEC_SIZE);
-		len++, x /= 10L);
-	snprintf (nstr + UVLS_NSEC_SIZE - len, len + 1, "%li", ts.tv_nsec);
-	/* nanosecs: append to date string */
-	date[date_len] = '.';
-	memcpy (date + date_len + 1, nstr, UVLS_NSEC_DIGITS);
-	date_len += UVLS_NSEC_DIGITS + 1;
-	date[date_len] = ' ';
-	date[date_len+1] = '\0';
 	/* write date string first */
+	(void) uvls_date (UVLS_DATE_FMT, date, UVLS_DATE_SIZE);
 	result = uvls_fprintf (stream, date);
 	/* write user data */
 	va_start (ap, fmt);
@@ -200,6 +165,56 @@ uvls_flogf (uv_stream_t *stream, const char *fmt, ...)
 	va_end (ap);
 
 	return result;
+}
+
+
+extern size_t
+uvls_date (const char *fmt, char date[], size_t size)
+{
+	struct tm *tmp;
+	size_t len;
+	/* nanoseconds part */
+	char nstr[UVLS_NSEC_SIZE + 1];
+	long n;
+	int nnum;
+
+
+	uvls_update_time ();
+	/* create date string */
+	NULL_CHECK(tmp = localtime (&ts.tv_sec));
+	CHECK_0(len = strftime (date, size, fmt, tmp));
+	/* nanosecs: prepend zeros */
+	memset (nstr, '0', UVLS_NSEC_SIZE - 1);
+	for (nnum = 0, n = ts.tv_nsec;
+		(n != 0) && (nnum < UVLS_NSEC_SIZE);
+		nnum++, n /= 10L);
+	snprintf (nstr + UVLS_NSEC_SIZE - nnum, nnum + 1, "%li", ts.tv_nsec);
+	/* nanosecs: append to date string */
+	date[len] = '.';
+	memcpy (date + len + 1, nstr, UVLS_NSEC_DIGITS);
+	len += UVLS_NSEC_DIGITS + 1;
+	date[len] = ' ';
+	date[len+1] = '\0';
+
+	return len;
+}
+
+
+inline static void
+uvls_update_time (void)
+{
+	uint64_t now, delta;
+
+
+	uv_mutex_lock (&timelock);
+	now = uv_hrtime ();
+	delta = now - hr;
+	ts.tv_sec += delta / 1000000000;
+	/* prevent tv_nsec overflow */
+	ts.tv_nsec += delta % 1000000000;
+	ts.tv_nsec %= 1000000000;
+	hr = now;
+	uv_mutex_unlock (&timelock);
 }
 
 

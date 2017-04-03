@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "output.h"
+#include "check.h"
+
 
 #ifndef _WIN32
 #define EOL "\n"
@@ -47,7 +49,7 @@
 #define BG_WHITE	"47"
 #define BG_DEFAULT	"49"
 
-#define STRING_SIZE 1024
+#define STRING_SIZE 4096
 #define CSI_SIZE 128
 
 
@@ -58,30 +60,29 @@ say (const char *fmt, ...)
 	char str[STRING_SIZE];
 	size_t offset = 0;
 	char *end = EOL;
-	uv_write_t req;
-	uv_buf_t buf;
 
 
-	if (colorized) {
-		SGR opt[] = {
-			SGR_COLOR_YELLOW,
-			SGR_UNDERLINE
-		};
-		char *csi = create_csi (opt, sizeof (opt) / sizeof (opt[0]));
-		offset = strlen (csi);
-		snprintf (str, STRING_SIZE, csi);
-		end = EOL ESC RESET SGR_MOD;
-		free (csi);
-	}
+	SGR opt[] = {
+		SGR_COLOR_YELLOW,
+		SGR_UNDERLINE
+	};
+	char *csi = create_csi (opt, sizeof (opt) / sizeof (opt[0]));
+	offset = strlen (csi);
+	snprintf (str, STRING_SIZE, csi);
+	end = ESC RESET SGR_MOD;
+	free (csi);
 
 	va_start (args, fmt);
 	vsnprintf (str + offset, STRING_SIZE - offset, fmt, args);
-	offset = strlen (str) - strlen (end);
-	snprintf (str + offset, STRING_SIZE - offset, end);
 	va_end (args);
-	
-	buf = uv_buf_init (str, strlen (str));
-	uv_write (&req, (uv_stream_t *) &tty_out, &buf, 1, NULL);
+
+	offset = strlen (str);
+
+	if (offset >= STRING_SIZE - 1)
+		offset = STRING_SIZE - strlen (end) - 1;
+
+	snprintf (str + offset, STRING_SIZE - offset, end);
+	uvls_puts (str);
 }
 
 
