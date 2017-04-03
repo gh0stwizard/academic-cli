@@ -172,14 +172,21 @@ _word_id_cb (uv_async_t *handle)
 	dic_result_t *d = (dic_result_t *) handle->data;
 
 
-	if (d != NULL) {
+	if (d != NULL && d->data != NULL) {
+		if (d->data->length > 0) {
+			char *dp = d->data->text + d->data->length;
+
+			for (--dp; *dp == '\n'; dp--)
+					*dp = '\0';
+		}
+
 		vlog (VLOG_DEBUG, d->data->text);
 
 		handle->data = NULL;
 		_free_dic_results (d);
 	}
 	else {
-		vlog (VLOG_ERROR, "nothing to do");
+		vlog (VLOG_ERROR, "no data");
 	}
 
 	uv_close ((uv_handle_t *) handle, _close_cb);

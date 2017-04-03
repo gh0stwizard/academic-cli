@@ -171,6 +171,7 @@ sig_int_cb (uv_signal_t *handle, int signum)
 {
 	vlog (VLOG_TRACE, "SIGINT");
 	uv_signal_stop (handle);
+	uv_stop (loop);
 }
 
 
@@ -179,6 +180,7 @@ sig_term_cb (uv_signal_t *handle, int signum)
 {
 	vlog (VLOG_TRACE, "SIGTERM");
 	uv_signal_stop (handle);
+	uv_stop (loop);
 }
 
 
@@ -192,8 +194,9 @@ timer_arg_cb (uv_timer_t *handle)
 
 	int did[] = {
 //		ACADEMIC_DID_SYNONYMUM_RU_EN,
-		ACADEMIC_DID_SYNONYMUM_EN_RU,
+//		ACADEMIC_DID_SYNONYMUM_EN_RU,
 //		ACADEMIC_DID_UNIVERSAL_EN_RU,
+		ACADEMIC_DID_ENG_RUS,
 	};
 
 	while (argc-- > 1) {

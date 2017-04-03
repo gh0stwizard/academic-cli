@@ -15,11 +15,12 @@
 extern void
 term_cb (uv_work_t *req)
 {
+	CURLcode code;
 	CURL *handle;
 	term_t *w;
 	char url[MAX_URL_SIZE];
 	curl_mem_t storage;
-	term_result_t *result;
+	term_result_t *result = NULL;
 
 
 	w = (term_t *) req->data;
@@ -49,8 +50,15 @@ term_cb (uv_work_t *req)
 		(handle, CURLOPT_WRITEFUNCTION, curl_mem_write_cb));
 	CURL_CHECK(curl_easy_setopt
 		(handle, CURLOPT_WRITEDATA, (void *) &storage));
-	
-	CURL_CHECK(curl_easy_perform (handle));
+
+	/* perform request */
+	code = curl_easy_perform (handle);
+
+	if (code != CURLE_OK) {
+		vlog (VLOG_WARN, "%s: curl [%d]: %s\n",
+			code, curl_easy_strerror (code));
+		goto done;
+	}
 
 	vlog (VLOG_TRACE, "%s: parsing json data...", w->word);
 	parse_json (storage.data, storage.size, &result);
@@ -60,6 +68,9 @@ term_cb (uv_work_t *req)
 		result->word = w->word;
 		result->did = w->did;
 	}
+
+done:
+
 	/* write result & send it to main thread */
 	uv_rwlock_wrlock (w->lock);
 	w->async->data = result;

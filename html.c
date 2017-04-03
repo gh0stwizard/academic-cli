@@ -171,173 +171,103 @@ done:
 static html_data_t *
 get_dd_text (myhtml_tree_node_t *node)
 {
-	char *newtext;
-	int tag_num;
+	html_data_t *res;
+	html_el_t *els = NULL;
 	html_tag_t *tags;
-	html_data_t *list;
-	html_el_t *newels = NULL;
-	size_t len;
-	myhtml_tree_node_t *prev, *begin;
-	myhtml_tree_node_t *div = NULL, *div_parent = NULL;
-	int skip = 0;
+	size_t elsnum = 0;
+	myhtml_tree_node_t *child;
+	myhtml_tree_node_t *next = NULL;
+	int tag_count = 0;
+	int level = 0;
+	char *text;
 
-	NULL_CHECK(list = malloc (sizeof (*list)));
-	NULL_CHECK(list->text = malloc (sizeof (char)));
 
-	list->els = NULL;
-	list->el_count = 0;
-	list->size = 1;
-	list->length = 0;
+	NULL_CHECK(res = malloc (sizeof (*res)));
+	res->els = els;
+	res->el_count = elsnum;
+	res->size = sizeof (char);
+	res->length = 0;
+	NULL_CHECK(res->text = malloc (res->size));
 
 #define get_tagid(n) myhtml_token_node_tag_id (myhtml_node_token ((n)))
 
 	while (node) {
-		skip = 1;
-		switch (get_tagid (node)) {
-			case MyHTML_TAG__COMMENT:
-			case MyHTML_TAG_IFRAME:
-			case MyHTML_TAG_SCRIPT:
-				node = myhtml_node_next (node);
-				break;
-			case MyHTML_TAG_DIV:
-				vlog (VLOG_TRACE, "div: entry point");
+		child = node;
+		next = myhtml_node_next (node);
 
-				if (div) /* TODO */ {
-					vlog (VLOG_TRACE, "div: found inferor");
-					node = myhtml_node_next (node);
-				}
-				else {
-					div = node;
-					node = myhtml_node_child (node);
-				}
-				break;
-			default:
-				skip = 0;
-				break;
-		}
-
-		if (skip)
-			continue;
-
-		begin = node;
-		prev = node;
-		tag_num = 0;
-
-		while (get_tagid (node) != MyHTML_TAG__TEXT) {
-			vlog (VLOG_TRACE, "tag %d id %d", tag_num, get_tagid (node));
-			tag_num++;
-
-			prev = node;
-			node = myhtml_node_child (node);
-
-			if (node == NULL) {
-				prev = myhtml_node_parent (prev);
-				node = prev;
-			}			
+		/* go deep until end */
+		while ((child = myhtml_node_child (child))) {
+			tag_count++;
+			node = child;
+			/* look for closest sibling */
+			if (myhtml_node_next (child)) {
+				next = myhtml_node_next (child);
+				level = tag_count;
+			}
 		}
 
 		if (get_tagid (node) == MyHTML_TAG__TEXT) {
-			const char *ntxt = myhtml_node_text (node, 0);
-			vlog (VLOG_TRACE, "'%s' tags = %d", ntxt, tag_num);
+			const char *t = myhtml_node_text (node, 0);
+			vlog (VLOG_TRACE, "'%s' tags: %d", t, tag_count);
 
-			len = strlen (ntxt);
-			list->size += len;
-			NULL_CHECK(newtext = realloc (list->text, list->size));
-			list->text = newtext;
-			memcpy (newtext + list->length, ntxt, len);
-			
+			size_t len = strlen (t);
+			res->size += len;
+			NULL_CHECK(text = realloc (res->text, res->size));
+			memcpy (text + res->length, t, len);
 
-			if (tag_num > 0) {
-				if (list->els == NULL) {
-					list->els = (html_el_t *) malloc (sizeof (html_el_t));
-					NULL_CHECK(list->els);
-				}
-				else {
-					newels = realloc (list->els,
-								sizeof (html_el_t) * (list->el_count + 1));
-					NULL_CHECK(newels);
-					list->els = newels;
-				}
+			if (tag_count > 0) {
+				if (els == NULL)
+					els = malloc (sizeof (*els));
+				else
+					els = realloc (res->els, sizeof (*els) * (elsnum + 1));
+				NULL_CHECK (els);
 
-				NULL_CHECK(tags = malloc (sizeof (*tags) * tag_num));
-				list->els[list->el_count].tag_count = tag_num;
+				NULL_CHECK(tags = malloc (sizeof (*tags) * tag_count));
+				els[elsnum].tag_count = tag_count;
 
-				while (--tag_num >= 0) {
-					node = myhtml_node_parent (node);
-					tags[tag_num].tag_id = get_tagid (node);
+				myhtml_tree_node_t *p = node;
+				for (int i = tag_count - 1; i >= 0; i--) {
+					p = myhtml_node_parent (p);
+					tags[i].tag_id = get_tagid (p);
 
-					if (tags[tag_num].tag_id == MyHTML_TAG_A) {
-						tags[tag_num].href = get_href (node);
-						vlog (VLOG_TRACE, "href: %s", tags[tag_num].href);
+					if (tags[i].tag_id == MyHTML_TAG_A) {
+						tags[i].href = get_href (p);
+						vlog (VLOG_TRACE, "href: %s", tags[i].href);
 					}
 					else {
-						tags[tag_num].href = NULL;
+						tags[i].href = NULL;
 					}
 				}
 
-				list->els[list->el_count].tags = tags;
-				list->els[list->el_count].start = list->length;
-				list->els[list->el_count].end = list->length + len;
-				list->el_count++;
-
-				/* get back to current node */
-				node = myhtml_node_child (prev);
+				els[elsnum].tags = tags;
+				els[elsnum].start = res->length;
+				els[elsnum].end = res->length + len;
+				res->el_count = ++elsnum;
+				res->els = els;
 			}
 
-			list->length += len;
+			res->text = text;
+			res->length += len;
+		}
+		else if (get_tagid (node) == MyHTML_TAG_BR) {
+			vlog (VLOG_TRACE, "line break");
+			res->size += 1;
+			NULL_CHECK(text = realloc (res->text, res->size));
+			text[res->length] = '\n';
+			res->text = text;
+			res->length += 1;
 		}
 
-		if (div) {
-			if (myhtml_node_child (node)) {
-				vlog (VLOG_TRACE, "div: next child");
-				node = myhtml_node_child (node);
-			}
-			else if (myhtml_node_next (node)) {
-				vlog (VLOG_TRACE, "div: next sibling");
-				node = myhtml_node_next (node);
-			}
-			else if (myhtml_node_next (begin)) {
-				vlog (VLOG_TRACE, "div: next sibling from begin");
-				node = myhtml_node_next (begin);
-			}
-			else if (div_parent) {
-				/* TODO */
-				abort ();
-			}
-			else {
-				vlog (VLOG_TRACE, "div: exit");
-				node = myhtml_node_next (div);
-				div = NULL; /* TODO */
-			}
-
-			continue;
-		}
-
-		prev = node;
-		node = myhtml_node_child (node);
-
-		if (node) {
-			vlog (VLOG_TRACE, "next child");
-			continue;
-		}
-
-		node = myhtml_node_next (prev);
-
-		if (node) {
-			vlog (VLOG_TRACE, "next sibling");
-		}
-		else {
-			vlog (VLOG_TRACE, "next sibling from begin");
-			node = myhtml_node_next (begin);
-		}
+		tag_count = level;
+		node = next;
 	}
 
 #undef get_tagid
 
-	list->text[list->length] = '\0';
+	res->text[res->length] = '\0';
 	vlog (VLOG_TRACE, "parsing completed");
 
-	return list;
+	return res;
 }
 
 
