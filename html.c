@@ -229,6 +229,7 @@ get_dd_text (myhtml_tree_node_t *node)
 				for (int i = tag_count - 1; i >= 0; i--) {
 					p = myhtml_node_parent (p);
 					tags[i].tag_id = get_tagid (p);
+					vlog (VLOG_TRACE, " tag id: %#x", tags[i].tag_id);
 
 					if (tags[i].tag_id == MyHTML_TAG_A) {
 						tags[i].href = get_href (p);
@@ -257,10 +258,23 @@ get_dd_text (myhtml_tree_node_t *node)
 			res->text = text;
 			res->length += 1;
 		}
+		else
+			level = tag_count - level;
 
-		tag_count = level;
-		node = next;
+		if (next) {
+			tag_count = level;
+			node = next;
+		}
+		else {
+			while (tag_count-- > 0)
+				node = myhtml_node_parent (node);
+			node = myhtml_node_next (node);
+			level = 0;
+			tag_count = 0;
+		}
 	}
+
+	vlog (VLOG_TRACE, "level %d count %d", level, tag_count);
 
 #undef get_tagid
 

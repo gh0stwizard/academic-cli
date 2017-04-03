@@ -173,14 +173,16 @@ _word_id_cb (uv_async_t *handle)
 
 
 	if (d != NULL && d->data != NULL) {
+#if 0
 		if (d->data->length > 0) {
 			char *dp = d->data->text + d->data->length;
-
 			for (--dp; *dp == '\n'; dp--)
 					*dp = '\0';
 		}
+#endif
 
-		vlog (VLOG_DEBUG, d->data->text);
+		vlog (VLOG_DEBUG, "text length: %zu", d->data->length);
+		vlog (VLOG_DEBUG, "%s", d->data->text);
 
 		handle->data = NULL;
 		_free_dic_results (d);

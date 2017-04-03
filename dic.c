@@ -28,7 +28,7 @@ dic_cb (uv_work_t *req)
 
 	snprintf (url, MAX_URL_SIZE, academic_durl_fmt[w->did], w->word_id);
 
-	vlog (VLOG_DEBUG, "%d: %s", w->word_id, url);
+	vlog (VLOG_DEBUG, "word id %d: %s", w->word_id, url);
 
 	NULL_CHECK(storage.data = malloc (sizeof (char)));
 
@@ -53,8 +53,8 @@ dic_cb (uv_work_t *req)
 	code = curl_easy_perform (handle);
 
 	if (code != CURLE_OK) {
-		vlog (VLOG_WARN, "%s: curl [%d]: %s\n",
-			code, curl_easy_strerror (code));
+		vlog (VLOG_WARN, "word id %d: curl [%d]: %s\n",
+			w->word_id, code, curl_easy_strerror (code));
 		goto done;
 	}
 

@@ -56,7 +56,7 @@ term_cb (uv_work_t *req)
 
 	if (code != CURLE_OK) {
 		vlog (VLOG_WARN, "%s: curl [%d]: %s\n",
-			code, curl_easy_strerror (code));
+			w->word, code, curl_easy_strerror (code));
 		goto done;
 	}
 
