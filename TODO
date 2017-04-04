@@ -6,3 +6,4 @@
 * html.c: use myhtml_parse_chunk ()
 * html.c: linked div's
 * use uv_cancel() for queued jobs
+* lowercase input words

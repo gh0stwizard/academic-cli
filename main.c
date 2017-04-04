@@ -7,7 +7,7 @@
 #include "check.h"
 #include "loop.h"
 #include "html.h"
-#include "output.h"
+#include "cli.h"
 
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -264,14 +264,19 @@ term_cb (term_result_t *t)
 static void
 word_cb (word_result_t *d)
 {
+	char *cli_out = NULL;
+
+
 #ifndef _DEBUG
 	uvls_puts (d->word);
 	uvls_puts (
 		"------------------------------------"
 		"------------------------------------");
 
-	if (d->term && d->data)
-		uvls_printf ("%s\n\n", d->data->text);
+	if (d->term && d->data) {
+		(void) convert_html (d->data, &cli_out);
+		uvls_printf ("%s\n\n", cli_out);
+	}
 	else
 		uvls_printf ("ERROR: no data\n\n");
 #else
@@ -279,6 +284,11 @@ word_cb (word_result_t *d)
 		d->word, d->wid, d->did, d->data->length);
 	vlog (VLOG_DEBUG, "%s [wid: %d did: %d]: %s",
 		d->word, d->wid, d->did, d->data->text);
+	(void) convert_html (d->data, &cli_out);
+	uvls_logf ("%s\n", cli_out);
 #endif
+
+	if (cli_out != NULL)
+		free (cli_out);
 	free_word_results (d);
 }

@@ -1,14 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include "cli.h"
 #include "check.h"
+#include "vlog.h"
 
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define ESC             "\033["
 #define SEP             ";"
 #define SGR_MOD         "m"
+
+
+static size_t
+make_mycsi (char ***out, size_t **out_sizes);
+
+static void
+free_mycsi (char **csis, size_t *sizes, size_t count);
 
 
 extern size_t
@@ -42,5 +50,154 @@ create_csi (SGR options[], size_t size, char **out)
 extern size_t
 convert_html (html_data_t *html, char **out)
 {
-	return 0;
+	char *dst;
+	size_t len = 0, off = 0;
+	char *txtp = html->text;
+	size_t elements = html->el_count;
+	html_el_t *el = html->els;
+	html_el_t *elend = el + elements;
+	extern size_t make_mycsi (char ***, size_t **);
+	extern void free_mycsi (char **, size_t *, size_t);
+	char **csis;
+	size_t *csi_sizes;
+	size_t csi_count;
+	char *reset;
+	size_t reset_size;
+
+
+	if (elements == 0) {
+		dst = strndup (txtp, html->size);
+		len = html->length;
+		goto done;
+	}
+
+	csi_count = make_mycsi (&csis, &csi_sizes);
+	reset = csis[0];
+	reset_size = csi_sizes[0];
+
+	/* XXX: allocate twice as much space */
+	NULL_CHECK(dst = malloc (html->size * 2));
+
+	for (; el != elend; el++) {
+		html_tag_t *tag = el->tags;
+		html_tag_t *tagend = tag + el->tag_count;
+		size_t start = el->start;
+		size_t end = el->end;
+		size_t delta = end - start;
+
+		if (len - off < start) {
+			/* copy missing fragment */
+			vlog (VLOG_TRACE, "copy missing fragment: len %zu off %zu start %zu",
+				len, off, start);
+			memcpy (dst + len, txtp + (len - off), start - (len - off));
+			len += start - (len - off);
+		}
+
+		/* copy this fragment as is */
+		vlog (VLOG_TRACE, "copy fragment: len %zu off %zu start %zu end %zu delta %zu",
+			len, off, start, end, delta);
+		memcpy (dst + len, txtp + start, delta);
+		len += delta;
+
+		vlog (VLOG_TRACE, "'%.*s' start %zu end %zu tags %zu",
+			delta, txtp + start, start, end, el->tag_count);
+
+
+		size_t total_csz = 0;
+		for (; tag != tagend; tag++) {
+			size_t csz = 0;
+			char *csi;
+
+			switch (tag->tag_id) {
+				case MyHTML_TAG_A:
+					vlog (VLOG_TRACE, "%.*s <a>", delta, txtp + start);
+					csz = csi_sizes[3];
+					csi = csis[3];
+					break;
+				case MyHTML_TAG_EM:
+					vlog (VLOG_TRACE, "%.*s <em>", delta, txtp + start);
+					csz = csi_sizes[2];
+					csi = csis[2];
+					break;
+				case MyHTML_TAG_STRONG: {
+					vlog (VLOG_TRACE, "%.*s <strong>", delta, txtp + start);
+					csz = csi_sizes[1];
+					csi = csis[1];
+				}	break;
+				default:
+					vlog (VLOG_TRACE, "%.*s tag id %#x",
+						delta, txtp + start, tag->tag_id);
+					break;
+			}
+
+			if (csz > 0) {
+				char *src = dst + len - delta;
+				memmove (src + csz, src, delta);
+				memcpy (src, csi, csz);
+				off += csz;
+				len += csz;
+				total_csz += csz;
+			}
+		}
+
+		/* append SGR RESET once */
+		if (total_csz > 0) {
+			memcpy (dst + len, reset, reset_size);
+			off += reset_size;
+			len += reset_size;
+		}
+	}
+
+
+done:
+	free_mycsi (csis, csi_sizes, csi_count);
+
+	*out = dst;
+	return len;
+}
+
+
+static size_t
+make_mycsi (char ***out, size_t **out_sizes)
+{
+	char **csis = NULL;
+	size_t *sizes;
+	SGR reset[] = { SGR_RESET };
+	SGR bold[] = { SGR_BOLD };
+	SGR italic[] = { SGR_UNDERLINE };
+	SGR blue[] = { SGR_FG_BLUE, SGR_BOLD };
+	SGR *sgrs[] = {
+		reset,
+		bold,
+		italic,
+		blue
+	};
+	size_t sgr_sizes[] = {
+		sizeof (reset),
+		sizeof (bold),
+		sizeof (italic),
+		sizeof (blue)
+	};
+
+	NULL_CHECK(csis = malloc (ARRAY_SIZE(sgrs) * sizeof (*csis)));
+	NULL_CHECK(sizes = malloc (ARRAY_SIZE(sgrs) * sizeof (*sizes)));
+
+	for (size_t i = 0; i < ARRAY_SIZE(sgrs); i++)
+		sizes[i] = create_csi (sgrs[i], sgr_sizes[i], &(csis[i]));
+
+	*out = csis;
+	*out_sizes = sizes;
+
+	return ARRAY_SIZE(sgrs);
+}
+
+
+static void
+free_mycsi (char **csis, size_t *sizes, size_t count)
+{
+	for (size_t i; i < count; i++)
+		free (csis[i]);
+
+	free (csis);
+	free (sizes);
 }

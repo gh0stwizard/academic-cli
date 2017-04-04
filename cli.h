@@ -47,7 +47,8 @@ typedef enum {
 /* Neither bold nor faint */
 	SGR_NORMAL_COLOR    = 22,
 /* Not italic, not Fraktur */
-	SGR_ITALIC_OFF      = 23,
+	SGR_ITALIC_OFF		= 23,
+	SGR_FRAKTUR_OFF		= 23,
 /* Not singly or doubly underlined */
 	SGR_UNDERLINE_OFF   = 24,
 	SGR_BLINK_OFF       = 25,
@@ -78,7 +79,29 @@ typedef enum {
 	SGR_BG_WHITE        = 47,
 	SGR_BG_RESERVED     = 48,
 	SGR_BG_DEFAULT      = 49,
-	SGR_MAX             = 50,
+	SGR_RESERVED_50		= 50,
+	SGR_FRAMED			= 51,
+	SGR_ENCIRCLED		= 52,
+	SGR_OVERLINED		= 53,
+	SGR_FRAMED_OFF		= 54,
+	SGR_ENCIRCLED_OFF	= 54,
+	SGR_OVERLINED_OFF	= 55,
+	SGR_RESERVED_56		= 56,
+	SGR_RESERVED_57		= 57,
+	SGR_RESERVED_58		= 58,
+	SGR_RESERVED_59		= 59,
+/* hardly ever supported: 60-64 */
+	SGR_IDEOGRAM_UNDERLINE			= 60,
+	SGR_RIGHT_SIDE_LINE				= 60,
+	SGR_IDEOGRAM_DOUBLE_UNDERLINE	= 61,
+	SGR_DOUBLE_LINE_RIGHT_SIDE		= 61,
+	SGR_IDEOGRAM_OVERLINE			= 62,
+	SGR_LEFT_SIDE_LINE				= 62,
+	SGR_IDEOGRAM_DOUBLE_OVERLINE	= 63,
+	SGR_DOUBLE_LINE_LEFT_SIDE		= 63,
+	SGR_IDEOGRAM_STRESS_MARKING		= 64,
+	SGR_IDEOGRAM_ATTRIBUTES_OFF		= 65,
+	SGR_MAX             = 66
 } SGR;
 
 
