@@ -26,6 +26,7 @@ w_word_cb (uv_work_t *req)
 
 	NULL_CHECK(storage.data = malloc (sizeof (char)));
 	NULL_CHECK(result = malloc (sizeof (*result)));
+	result->word = w->word;
 	result->term = NULL;
 	result->data = NULL;
 	result->wid = w->wid;
@@ -49,21 +50,24 @@ w_word_cb (uv_work_t *req)
 		(handle, CURLOPT_WRITEDATA, (void *) &storage));
 
 	/* perform request */
-	vlog (VLOG_DEBUG, "word id %d: %s", w->wid, url);
+	vlog (VLOG_DEBUG, "%s [id: %d did: %d]: %s",
+		w->word, w->wid, w->did, url);
 	code = curl_easy_perform (handle);
 
 	if (code != CURLE_OK) {
-		vlog (VLOG_WARN, "word id %d: curl [%d]: %s\n",
-			w->wid, code, curl_easy_strerror (code));
+		uvls_logf ("%s [id: %d did: %d]: curl error #%d: %s\n",
+			w->word, w->wid, w->did, code, curl_easy_strerror (code));
 		goto done;
 	}
 
-	vlog (VLOG_TRACE, "parsing html (size %zu)...", storage.size);
+	vlog (VLOG_TRACE, "%s [id: %d did: %d]: parsing html (size %zu)...",
+		w->word, w->wid, w->did, storage.size);
 	result->term = parse_html (storage.data, storage.size, &result->data);	
 
 done:
 	w->async->data = result;
-	vlog (VLOG_TRACE, "word id %d: sending results...", w->wid);
+	vlog (VLOG_TRACE, "%s [id: %d did: %d]: sending results...",
+		w->word, w->wid, w->did);
 	UV_CHECK(uv_async_send (w->async));
 
 	curl_easy_cleanup (handle);
@@ -75,7 +79,8 @@ extern void
 w_word_after_cb (uv_work_t *req, int status)
 {
 	word_work_t *w = (word_work_t *) req;
-	vlog (VLOG_TRACE, "word id %d: done; status %d", w->wid, status);
+	vlog (VLOG_TRACE, "%s [id: %d did: %d]: done; status %d",
+		w->word, w->wid, w->did, status);
 	free (w);
 }
 
@@ -83,7 +88,8 @@ w_word_after_cb (uv_work_t *req, int status)
 extern void
 free_word_results (word_result_t *r)
 {
-	vlog (VLOG_TRACE, "wid %d did %d: cleanup", r->wid, r->did);
+	vlog (VLOG_TRACE, "%s [id: %d did: %d]: cleanup",
+		r->word, r->wid, r->did);
 
 	if (r->term)
 		free (r->term);

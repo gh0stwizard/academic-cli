@@ -217,33 +217,44 @@ timer_arg_cb (uv_timer_t *handle)
 static void
 term_cb (term_result_t *t)
 {
-	term_entry_t *e, *end;
-	const char *word;
-	size_t len;
+	term_entry_t *e = t->list;
+	term_entry_t *end = e + t->entries;
+	const char *word = t->word;
+	size_t len = strlen (word);
 	int matched = 0;
 
 
-	word = t->word;
-	len = strlen (word);
-	e = t->list;
-	end = e + t->entries;
+	vlog (VLOG_TRACE, "%s [did: %d]: found %d entries",
+		word, t->did, t->entries);
 
-	vlog (VLOG_TRACE, "%s: got term results %d", word, t->entries);
-
+	/* find word id */
 	for (; e != end && ! matched; e++) {
-		vlog (VLOG_TRACE, "id: %s value: '%s'", e->id, e->value);
+		vlog (VLOG_TRACE, "%s: id: %s value: '%s'", word, e->id, e->value);
 		if (strncmp (word, e->value, len + 1) == 0)
 			matched = atoi (e->id);
 	}
 
 	if (matched > 0) {
-		vlog (VLOG_TRACE, "%s: exact match by id %d", word, matched);
-		queue_word_id (matched, t->did, word_cb);
+		/* get term (word) definition */
+		vlog (VLOG_TRACE, "%s [did: %d]: exact match by id %d",
+			word, t->did, matched);
+		queue_word_id (word, matched, t->did, word_cb);
 	}
 	else {
-		/* TODO */
-		vlog (VLOG_NOTE, "%s: no exact match, %d available",
+#ifndef __DEBUG
+		uvls_printf ("%s: no exact match, %d records available:\n",
 			word, t->entries);
+		uvls_puts (
+			"------------------------------------"
+			"------------------------------------");
+		for (e = t->list; e != end; e++)
+			uvls_printf ("%s: %s\n", e->value, e->info);
+
+		uvls_printf ("\n");
+#else
+		vlog (VLOG_NOTE, "%s [did %d]: no exact match, %d available",
+			word, t->did, t->entries);
+#endif
 	}
 
 	free_term_results (t);
@@ -254,12 +265,20 @@ static void
 word_cb (word_result_t *d)
 {
 #ifndef _DEBUG
-	uvls_puts (d->term);
-	uvls_puts ("------------------------------------------------------------------------");
-	uvls_printf ("%s\n\n", d->data->text);
+	uvls_puts (d->word);
+	uvls_puts (
+		"------------------------------------"
+		"------------------------------------");
+
+	if (d->term && d->data)
+		uvls_printf ("%s\n\n", d->data->text);
+	else
+		uvls_printf ("ERROR: no data\n\n");
 #else
-	vlog (VLOG_DEBUG, "'%s' data length: %zu", d->term, d->data->length);
-	vlog (VLOG_DEBUG, "%s", d->data->text);
+	vlog (VLOG_DEBUG, "%s [wid: %d did: %d]: length of data %zu bytes",
+		d->word, d->wid, d->did, d->data->length);
+	vlog (VLOG_DEBUG, "%s [wid: %d did: %d]: %s",
+		d->word, d->wid, d->did, d->data->text);
 #endif
 	free_word_results (d);
 }

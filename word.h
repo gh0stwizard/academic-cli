@@ -7,6 +7,7 @@
 
 
 typedef struct dic_result_s {
+	const char *word;
 	char *term;
 	html_data_t *data;
 	int wid;
@@ -23,6 +24,7 @@ typedef struct word_async_s {
 typedef struct word_work_s {
 	uv_work_t	req;
 	uv_async_t *async;
+	const char *word;
 	int wid;
 	int did;
 } word_work_t;

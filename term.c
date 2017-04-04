@@ -52,11 +52,11 @@ w_term_cb (uv_work_t *req)
 		(handle, CURLOPT_WRITEDATA, (void *) &storage));
 
 	/* perform request */
-	vlog (VLOG_DEBUG, "%s: %s", w->word, url);
+	vlog (VLOG_TRACE, "%s: %s", w->word, url);
 	code = curl_easy_perform (handle);
 
 	if (code != CURLE_OK) {
-		vlog (VLOG_WARN, "%s: curl [%d]: %s\n",
+		uvls_logf ("%s: curl [%d]: %s\n",
 			w->word, code, curl_easy_strerror (code));
 		goto done;
 	}
