@@ -4,6 +4,6 @@
 #include "term.h"
 
 extern int
-parse_json (const char *data, size_t size, term_result_t **out);
+parse_json (const char *data, size_t size, term_entry_t **out);
 
 #endif /* JSON_H__ */

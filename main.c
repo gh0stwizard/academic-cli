@@ -52,6 +52,12 @@ sig_term_cb (uv_signal_t *handle, int signum);
 static void
 timer_arg_cb (uv_timer_t *handle);
 
+static void
+term_cb (term_result_t *terms);
+
+static void
+word_cb (word_result_t *d);
+
 
 /* ------------------------------------------------------------------ */
 
@@ -200,9 +206,60 @@ timer_arg_cb (uv_timer_t *handle)
 	};
 
 	while (argc-- > 1) {
-		queue_word (argv[argc], did, ARRAY_SIZE(did));
+		queue_term (argv[argc], did, ARRAY_SIZE(did), ACADEMIC_TERM_LIMIT, term_cb);
 	}
 
 	free (args);
 	uv_timer_stop (handle);
+}
+
+
+static void
+term_cb (term_result_t *t)
+{
+	term_entry_t *e, *end;
+	const char *word;
+	size_t len;
+	int matched = 0;
+
+
+	word = t->word;
+	len = strlen (word);
+	e = t->list;
+	end = e + t->entries;
+
+	vlog (VLOG_TRACE, "%s: got term results %d", word, t->entries);
+
+	for (; e != end && ! matched; e++) {
+		vlog (VLOG_TRACE, "id: %s value: '%s'", e->id, e->value);
+		if (strncmp (word, e->value, len + 1) == 0)
+			matched = atoi (e->id);
+	}
+
+	if (matched > 0) {
+		vlog (VLOG_TRACE, "%s: exact match by id %d", word, matched);
+		queue_word_id (matched, t->did, word_cb);
+	}
+	else {
+		/* TODO */
+		vlog (VLOG_NOTE, "%s: no exact match, %d available",
+			word, t->entries);
+	}
+
+	free_term_results (t);
+}
+
+
+static void
+word_cb (word_result_t *d)
+{
+#ifndef _DEBUG
+	uvls_puts (d->term);
+	uvls_puts ("------------------------------------------------------------------------");
+	uvls_printf ("%s\n\n", d->data->text);
+#else
+	vlog (VLOG_DEBUG, "'%s' data length: %zu", d->term, d->data->length);
+	vlog (VLOG_DEBUG, "%s", d->data->text);
+#endif
+	free_word_results (d);
 }

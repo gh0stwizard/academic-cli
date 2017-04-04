@@ -18,7 +18,7 @@ typedef struct token_node_s {
 static int
 get_nodes (const char *js, jsmntok_t *t, size_t count, token_node_t **out);
 
-static term_result_t *
+static term_entry_t *
 conv_nodes (const char *js, token_node_t *nodes, int count);
 
 #ifdef _DEBUG_JSMN
@@ -31,7 +31,7 @@ dump (const char *js, jsmntok_t *t, size_t count, int indent);
 
 
 extern int
-parse_json (const char *data, size_t size, term_result_t **out)
+parse_json (const char *data, size_t size, term_entry_t **out)
 {
 	jsmn_parser p;
 	jsmntok_t *tok;
@@ -62,7 +62,11 @@ parse_json (const char *data, size_t size, term_result_t **out)
 		free (tok);
 	}
 
-	return r;
+	if (r >= 0)
+		return r;
+
+	vlog (VLOG_ERROR, "jsmn error code %d", r);
+	return 0;
 }
 
 
@@ -164,29 +168,21 @@ get_nodes (const char *js, jsmntok_t *tokens, size_t count, token_node_t **out)
 }
 
 
-static term_result_t *
+static term_entry_t *
 conv_nodes (const char *js, token_node_t *nodes, int count)
 {
-	term_result_t *result;
-	term_data_t *list;
-	term_data_t *listp;
+	term_entry_t *list;
+	term_entry_t *listp;
 	token_node_t *n, *nend;
 	int len;
 	char *str;
 
 
-	result = (term_result_t *) malloc (sizeof (*result));
-	NULL_CHECK(result);
-	result->entries = count;
+	if (count <= 0)
+		return NULL;
 
-	if (count <= 0) {
-		result->list = NULL;
-		return result;
-	}
-
-	NULL_CHECK(list = (term_data_t *) calloc (count, sizeof (*list)));
+	NULL_CHECK(list = calloc (count, sizeof (*list)));
 	listp = list;
-	result->list = list;
 
 	for (n = nodes, nend = nodes + count; n != nend; n++, listp++) {
 		len = n->id->end - n->id->start;
@@ -208,7 +204,7 @@ conv_nodes (const char *js, token_node_t *nodes, int count)
 		listp->info = str;
 	}
 
-	return result;
+	return list;
 }
 
 

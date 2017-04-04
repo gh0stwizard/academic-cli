@@ -2,216 +2,111 @@
 #include <string.h>
 #include <uv.h>
 #include "queue.h"
-#include "term.h"
-#include "dic.h"
 #include "check.h"
 #include "loop.h"
 #include "vlog.h"
-#include "output.h"
 
 
 static void
 _term_cb (uv_async_t *handle);
 
 static void
+_term_close_cb (uv_handle_t *handle);
+
+static void
 _word_id_cb (uv_async_t *handle);
 
 static void
-_queue_word_id (int word_id, int did, uv_async_cb cb);
-
-static void
-_free_term_results (term_result_t *t);
-
-static void
-_free_dic_results (dic_result_t *d);
-
-static void
-_close_cb (uv_handle_t *handle);
+_word_id_close_cb (uv_handle_t *handle);
 
 
 /* ------------------------------------------------------------------ */
 
 
 extern void
-queue_word (const char *word, int did[], int did_num)
+queue_term (const char *word, int did[], int didnum, int limit, term_f cb)
 {
-	while (did_num-- > 0)
-		queue_term (word, did[did_num], ACADEMIC_TERM_LIMIT, _term_cb);
+	term_work_t *w;
+	term_async_t *a;
+
+
+	while (didnum-- > 0) {
+		NULL_CHECK(a = malloc (sizeof (*a)));
+		a->cb = cb;
+		UV_CHECK(uv_async_init (loop, (uv_async_t *) a, _term_cb));
+
+		NULL_CHECK(w = malloc (sizeof (*w)));
+		w->word = word;
+		w->did = did[didnum];
+		w->limit = limit;
+		w->async = &a->async;
+		UV_CHECK(uv_queue_work (loop, (uv_work_t *) w, w_term_cb, w_term_after_cb));
+	}
+}
+
+
+static void
+_term_cb (uv_async_t *req)
+{
+	term_result_t *t = (term_result_t *) req->data;
+	term_async_t *a = (term_async_t *) req;
+
+
+	if (a->cb != NULL)
+		a->cb (t);
+	else
+		free_term_results (t);
+
+	uv_close ((uv_handle_t *) req, _term_close_cb);
+}
+
+
+static void
+_term_close_cb (uv_handle_t *handle)
+{
+	term_async_t *a = (term_async_t *) handle;
+	free (a);
 }
 
 
 extern void
-query_word_by_id (int word_id, int did[], int did_num)
+queue_word_id (int wid, int did, word_f cb)
 {
-	while (did_num-- > 0)
-		_queue_word_id (word_id, did[did_num], _word_id_cb);
+	word_work_t *w;
+	word_async_t *a;
+
+
+	NULL_CHECK(a = malloc (sizeof (*a)));
+	a->cb = cb;
+	UV_CHECK(uv_async_init (loop, (uv_async_t *) a, _word_id_cb));
+
+	NULL_CHECK(w = malloc (sizeof (*w)));
+	w->async = &a->async;
+	w->wid = wid;
+	w->did = did;
+	UV_CHECK(uv_queue_work (loop, (uv_work_t *) w, w_word_cb, w_word_after_cb));
 }
 
 
 static void
-_queue_word_id (int word_id, int did, uv_async_cb cb)
+_word_id_cb (uv_async_t *req)
 {
-	uv_work_t *w;
-	uv_async_t *async;
-	uv_rwlock_t *lock;
-	dic_t *dic;
+	word_result_t *w = (word_result_t *) req->data;
+	word_async_t *a = (word_async_t *) req;
 
 
-	NULL_CHECK(w = (uv_work_t *) malloc (sizeof (*w)));
-	NULL_CHECK(async = (uv_async_t *) malloc (sizeof (*async)));
-	NULL_CHECK(lock = (uv_rwlock_t *) malloc (sizeof (*lock)));
-	NULL_CHECK(dic = (dic_t *) malloc (sizeof (*dic)));
+	if (a->cb != NULL)
+		a->cb (w);
+	else
+		free_word_results (w);
 
-	UV_CHECK(uv_async_init (loop, async, cb));
-	UV_CHECK(uv_rwlock_init (lock));
-
-	dic->async = async;
-	dic->lock = lock;
-	dic->word_id = word_id;
-	dic->did = did;
-
-	w->data = dic;
-	UV_CHECK(uv_queue_work (loop, w, dic_cb, dic_after_cb));
-}
-
-
-extern void
-queue_term (const char *word, int did, int limit, term_cb_t cb)
-{
-	uv_work_t *w;
-	uv_async_t *async;
-	uv_rwlock_t *lock;
-	term_t *term;
-
-
-	NULL_CHECK(w = (uv_work_t *) malloc (sizeof (*w)));
-	NULL_CHECK(term = (term_t *) malloc (sizeof (*term)));
-	NULL_CHECK(async = (uv_async_t *) malloc (sizeof (*async)));
-	NULL_CHECK(lock = (uv_rwlock_t *) malloc (sizeof (*lock)));
-
-	UV_CHECK(uv_async_init (loop, async, cb));
-	UV_CHECK(uv_rwlock_init (lock));
-
-	term->limit = limit;
-	term->did = did;
-	term->word = word;
-	term->async = async;
-	term->lock = lock;
-
-	w->data = term;
-	UV_CHECK(uv_queue_work (loop, w, term_cb, term_after_cb));
+	uv_close ((uv_handle_t *) req, _word_id_close_cb);
 }
 
 
 static void
-_term_cb (uv_async_t *handle)
+_word_id_close_cb (uv_handle_t *handle)
 {
-	term_result_t *t = (term_result_t *) handle->data;
-	term_data_t *e, *end;
-	const char *word;
-	size_t len;
-	int matched = 0;
-
-
-	if (t != NULL) {
-		word = t->word;
-		len = strlen (word);
-		e = t->list;
-		end = e + t->entries;
-
-		vlog (VLOG_TRACE, "%s: got term results %d", word, t->entries);
-
-		for (; e != end && ! matched; e++) {
-			vlog (VLOG_TRACE, "id: %s value: '%s'", e->id, e->value);
-			if (strncmp (word, e->value, len + 1) == 0)
-				matched = atoi (e->id);
-		}
-
-		if (matched > 0) {
-			vlog (VLOG_TRACE, "%s: exact match by id %d", word, matched);
-			_queue_word_id (matched, t->did, _word_id_cb);
-		}
-		else {
-			/* TODO */
-			vlog (VLOG_NOTE, "%s: no exact match, %d available",
-				word, t->entries);
-		}
-		
-		_free_term_results (t);
-	}
-	else {
-		vlog (VLOG_ERROR, "nothing to do");
-	}
-
-	uv_close ((uv_handle_t *) handle, _close_cb);
-}
-
-
-static void
-_free_term_results (term_result_t *t)
-{
-	term_data_t *e, *end;
-
-
-	vlog (VLOG_TRACE, t->word);
-
-	for (e = t->list, end = e + t->entries; e != end; e++) {
-		free (e->id);
-		free (e->value);
-		free (e->info);
-	}
-
-	free (t->list);
-	free (t);
-}
-
-
-static void
-_word_id_cb (uv_async_t *handle)
-{
-	dic_result_t *d = (dic_result_t *) handle->data;
-
-
-	if (d != NULL && d->data != NULL) {
-#if 0
-		if (d->data->length > 0) {
-			char *dp = d->data->text + d->data->length;
-			for (--dp; *dp == '\n'; dp--)
-					*dp = '\0';
-		}
-#endif
-
-		vlog (VLOG_DEBUG, "text length: %zu", d->data->length);
-		vlog (VLOG_DEBUG, "%s", d->data->text);
-
-		handle->data = NULL;
-		_free_dic_results (d);
-	}
-	else {
-		vlog (VLOG_ERROR, "no data");
-	}
-
-	uv_close ((uv_handle_t *) handle, _close_cb);
-}
-
-
-static void
-_free_dic_results (dic_result_t *d)
-{
-	vlog (VLOG_TRACE, "%d", d->word_id);
-
-	if (d->term)
-		free (d->term);
-
-	if (d->data)
-		free_html_data (d->data);
-
-	free (d);
-}
-
-
-static void
-_close_cb (uv_handle_t *handle)
-{
-	free (handle);
+	word_async_t *a = (word_async_t *) handle;
+	free (a);
 }

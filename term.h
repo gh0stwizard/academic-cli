@@ -5,33 +5,43 @@
 #include "academic.h"
 
 
-typedef struct term_s {
-	int limit;
-	int did;
-	const char *word;
-	uv_async_t *async;
-	uv_rwlock_t *lock;
-} term_t;
-
-typedef struct term_data_s {
+typedef struct term_entry_s {
 	char *id;
 	char *value;
 	char *info;
-} term_data_t;
+} term_entry_t;
 
 typedef struct term_result_s {
-	term_data_t *list;
-	int entries;
 	const char *word;
 	int did;
+	int limit;
+	term_entry_t *list;
+	int entries;
 } term_result_t;
 
+typedef void (*term_f) (term_result_t *terms);
 
-void
-term_cb (uv_work_t *req);
+typedef struct term_async_s {
+	uv_async_t async;
+	term_f cb;
+} term_async_t;
 
-void
-term_after_cb (uv_work_t *req, int status);
+typedef struct term_work_s {
+	uv_work_t	req;
+	uv_async_t *async;
+	const char *word;
+	int did;
+	int limit;
+} term_work_t;
 
+
+extern void
+w_term_cb (uv_work_t *req);
+
+extern void
+w_term_after_cb (uv_work_t *req, int status);
+
+extern void
+free_term_results (term_result_t *t);
 
 #endif /* TERM_H__ */

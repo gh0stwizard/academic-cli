@@ -229,11 +229,11 @@ get_dd_text (myhtml_tree_node_t *node)
 				for (int i = tag_count - 1; i >= 0; i--) {
 					p = myhtml_node_parent (p);
 					tags[i].tag_id = get_tagid (p);
-					vlog (VLOG_TRACE, " tag id: %#x", tags[i].tag_id);
+					vlog (VLOG_TRACE, "  tag id: %#x", tags[i].tag_id);
 
 					if (tags[i].tag_id == MyHTML_TAG_A) {
 						tags[i].href = get_href (p);
-						vlog (VLOG_TRACE, "href: %s", tags[i].href);
+						vlog (VLOG_TRACE, "    href: %s", tags[i].href);
 					}
 					else {
 						tags[i].href = NULL;

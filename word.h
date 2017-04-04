@@ -6,26 +6,35 @@
 #include "html.h"
 
 
-typedef struct dic_s {
-	uv_async_t *async;
-	uv_rwlock_t *lock;
-	int word_id;
-	int did;
-} dic_t;
-
 typedef struct dic_result_s {
-	int word_id;
-	int did;
 	char *term;
 	html_data_t *data;
-} dic_result_t;
+	int wid;
+	int did;
+} word_result_t;
+
+typedef void (*word_f) (word_result_t *data);
+
+typedef struct word_async_s {
+	uv_async_t async;
+	word_f cb;
+} word_async_t;
+
+typedef struct word_work_s {
+	uv_work_t	req;
+	uv_async_t *async;
+	int wid;
+	int did;
+} word_work_t;
 
 
 void
-dic_cb (uv_work_t *req);
+w_word_cb (uv_work_t *req);
 
 void
-dic_after_cb (uv_work_t *req, int status);
+w_word_after_cb (uv_work_t *req, int status);
 
+extern void
+free_word_results (word_result_t *r);
 
 #endif /* DIC_H__ */
