@@ -117,7 +117,8 @@ parse_html (const char *data, size_t size, html_data_t **out)
 			(tree, NULL, dl, MyHTML_TAG_DT, NULL);
 
 		if (dt_coll && dt_coll->list && dt_coll->length) {
-			myhtml_tree_node_t *dt = myhtml_node_child (dt_coll->list[0]);
+			myhtml_tree_node_t *dt = myhtml_node_child
+				(dt_coll->list[dt_coll->length - 1]);
 
 			if (dt == NULL) {
 				vlog (VLOG_ERROR, "empty dt");
@@ -139,7 +140,8 @@ parse_html (const char *data, size_t size, html_data_t **out)
 			(tree, NULL, dl, MyHTML_TAG_DD, NULL);
 
 		if (dd_coll && dd_coll->list && dd_coll->length) {
-			myhtml_tree_node_t *ddch = myhtml_node_child (dd_coll->list[0]);
+			myhtml_tree_node_t *ddch = myhtml_node_child
+				(dd_coll->list[dd_coll->length - 1]);
 
 			if (ddch == NULL) {
 				vlog (VLOG_ERROR, "empty dd");
@@ -212,6 +214,14 @@ get_dd_text (myhtml_tree_node_t *node)
 		child = node;
 		next = myhtml_node_next (node);
 
+		/* SKIP text from this tags */
+		switch (get_tagid (node)) {
+			case MyHTML_TAG_IFRAME:
+			case MyHTML_TAG_SCRIPT:
+				node = next;
+				continue;
+		}
+
 		/* go deep until end */
 		while ((child = myhtml_node_child (child))) {
 			tag_count++;
@@ -222,6 +232,8 @@ get_dd_text (myhtml_tree_node_t *node)
 				level = tag_count;
 			}
 		}
+
+		vlog (VLOG_TRACE, "tag count %d level %d", tag_count, level);
 
 		if (get_tagid (node) == MyHTML_TAG__TEXT) {
 			const char *t = myhtml_node_text (node, 0);
@@ -276,18 +288,15 @@ get_dd_text (myhtml_tree_node_t *node)
 			res->length += 1;
 		}
 
-		tag_count = level;
-
 		if (next) {
+			tag_count = level;
 			node = next;
 		}
 		else {
-			level = tag_count - level;
 			while (tag_count-- > 0)
 				node = myhtml_node_parent (node);
 			node = myhtml_node_next (node);
 			level = 0;
-			tag_count = 0;
 		}
 	}
 
