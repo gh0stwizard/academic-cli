@@ -24,7 +24,7 @@ At the moment, not much. There are big plans about that.
 ```
 shell> ./academic-cli --help
 Usage:
-academic-cli: [options] word1 word2 ... wordN
+academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN
 Options:
   --dictionary ID, -d ID   Use this dictionary ID.
   --help, -h, -?           Display this information.

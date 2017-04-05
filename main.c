@@ -379,7 +379,7 @@ static void
 print_usage (void)
 {
 	uvls_puts ("Usage:\n"
-				"academic-cli: [options] word1 word2 ... wordN\n"
+				"academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN\n"
 				"Options:");
 #define p(o, d) uvls_printf ("  %-24s %s\n", (o), (d))
 	p ("--dictionary ID, -d ID", "Use this dictionary ID.");
