@@ -24,14 +24,17 @@ At the moment, not much. There are big plans about that.
 ## Usage
 
 ```
-shell> ./academic-cli --help
 Usage:
 academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN
 Options:
-  --dictionary ID, -d ID   Use this dictionary ID.
-  --help, -h, -?           Display this information.
-  --list, -l               Display dictionary IDs.
-  --version, -v            Display version information.
+  --dictionary ID, -d ID       Use this dictionary ID.
+  --help, -h, -?               Display this information.
+  --list TYPE, -l TYPE         Display dictionary IDs by type. See --list-types.
+  --list-all, -L               Display all dictionary IDs.
+  --list-types, -T             Display dictionary types.
+  --retries NUM, -r NUM        How many times to retry establish a connection.
+  --retry-timeout MS, -t MS    Delay between connection retries in milliseconds.
+  --version, -v                Display version information.
 ```
 
 
