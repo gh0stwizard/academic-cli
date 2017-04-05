@@ -292,6 +292,8 @@ static void
 word_cb (word_result_t *d)
 {
 	char *cli_out = NULL;
+	char *term = d->term;
+	html_data_t *data = d->data;
 
 
 #ifndef _DEBUG
@@ -301,19 +303,20 @@ word_cb (word_result_t *d)
 		"------------------------------------"
 		"------------------------------------");
 
-	if (d->term && d->data) {
+	if (term && data) {
 		/* remove line breaks at the begining */
-		char *t = d->data->text;
+		char *t = data->text;
 		size_t i;
 		for (i = 0; *t == '\n' || *t == '\r'; t++, i++);
-		d->data->length -= i;
-		memmove (d->data->text, d->data->text + i, d->data->length);
+		data->length -= i;
+		if (i > 0)
+			memmove (data->text, t, data->length);
 		/* remove line breaks at the end */
-		for (t = d->data->text + d->data->length - 1;
-			*t == '\n' || *t == '\r';
-			t--, d->data->length--)
+		t = data->text + data->length - 1;
+		for (i = data->length; i > 0 && (*t == '\n' || *t == '\r'); i--, t--)
 			*t = '\0';
-		size_t len = convert_html (d->data, &cli_out);
+		data->length = i;
+		size_t len = convert_html (data, &cli_out);
 		uvls_printf ("%.*s\n\n", len, cli_out);
 	}
 	else
