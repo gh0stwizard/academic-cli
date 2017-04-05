@@ -19,6 +19,7 @@
 #ifndef TERM_H__
 #define TERM_H__
 
+#include <time.h>
 #include <uv.h>
 #include "academic.h"
 
@@ -52,6 +53,14 @@ typedef struct term_work_s {
 	int limit;
 } term_work_t;
 
+typedef struct term_init_s {
+	unsigned int retries;
+	struct timespec sleep_ts;
+} term_init_t;
+
+
+extern void
+term_init (term_init_t *options);
 
 extern void
 w_term_cb (uv_work_t *req);

@@ -80,7 +80,7 @@ typedef enum {
 	ACADEMIC_DID_SYNONYMUM_EN_RU,
 	/* ru -> en*/
 	ACADEMIC_DID_SYNONYMUM_RU_EN,
-	/* ru: biology */
+	/* enc: ru: biology */
 	ACADEMIC_DID_ENC_BIOLOGY,
 	/* must be latest */
 	ACADEMIC_DID_MAX

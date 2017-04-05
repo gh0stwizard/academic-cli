@@ -29,6 +29,19 @@
 
 /* ------------------------------------------------------------------ */
 
+static unsigned int curl_retries;
+static struct timespec curl_sleep_ts;
+
+/* ------------------------------------------------------------------ */
+
+
+extern void
+term_init (term_init_t *options)
+{
+	curl_retries = options->retries;
+	curl_sleep_ts = options->sleep_ts;
+}
+
 
 extern void
 w_term_cb (uv_work_t *req)
@@ -39,6 +52,7 @@ w_term_cb (uv_work_t *req)
 	curl_mem_t storage;
 	term_result_t *result;
 	term_work_t *w = (term_work_t *) req;
+	unsigned int retry = 0;
 
 
 	snprintf (url, MAX_URL_SIZE, ACADEMIC_URL_TERM_FMT,
@@ -71,12 +85,33 @@ w_term_cb (uv_work_t *req)
 
 	/* perform request */
 	vlog (VLOG_TRACE, "%s: %s", w->word, url);
-	code = curl_easy_perform (handle);
+
+	do {
+		code = curl_easy_perform (handle);
+
+		if (code == CURLE_OK)
+			break;
+
+		if (code == CURLE_COULDNT_RESOLVE_HOST ||
+			code == CURLE_OPERATION_TIMEDOUT)
+		{
+			if (retry++ < curl_retries) {
+				vlog (VLOG_WARN, "%s: retry #%d", w->word, retry);
+				nanosleep (&curl_sleep_ts, NULL);
+			}
+			else
+				break;
+		}
+	} while (code != CURLE_OK);
 
 	if (code != CURLE_OK) {
-		/* TODO: CURLE_OPERATION_TIMEDOUT */
-		uvls_logf ("%s: curl [%d]: %s\n",
+#ifndef _DEBUG
+		uvls_logf ("%s: curl error #%d: %s\n",
 			w->word, code, curl_easy_strerror (code));
+#else
+		vlog (VLOG_ERROR, "%s: curl error #%d: %s",
+			w->word, code, curl_easy_strerror (code));
+#endif
 		goto done;
 	}
 

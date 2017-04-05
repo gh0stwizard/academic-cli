@@ -28,6 +28,19 @@
 
 /* ------------------------------------------------------------------ */
 
+static unsigned int curl_retries;
+static struct timespec curl_sleep_ts;
+
+/* ------------------------------------------------------------------ */
+
+
+extern void
+word_init (word_init_t *options)
+{
+	curl_retries = options->retries;
+	curl_sleep_ts = options->sleep_ts;
+}
+
 
 extern void
 w_word_cb (uv_work_t *req)
@@ -38,6 +51,7 @@ w_word_cb (uv_work_t *req)
 	curl_mem_t storage;
 	word_result_t *result = NULL;
 	word_work_t *w = (word_work_t *) req;
+	unsigned int retry = 0;
 
 
 	snprintf (url, MAX_URL_SIZE, academic_durl_fmt[w->did], w->wid);
@@ -70,12 +84,34 @@ w_word_cb (uv_work_t *req)
 	/* perform request */
 	vlog (VLOG_DEBUG, "%s [id: %d did: %d]: %s",
 		w->word, w->wid, w->did, url);
-	code = curl_easy_perform (handle);
+
+	do {
+		code = curl_easy_perform (handle);
+
+		if (code == CURLE_OK)
+			break;
+
+		if (code == CURLE_COULDNT_RESOLVE_HOST ||
+			code == CURLE_OPERATION_TIMEDOUT)
+		{
+			if (retry++ < curl_retries) {
+				vlog (VLOG_WARN, "%s [id: %d did: %d]: retry #%d",
+					w->word, w->wid, w->did, retry);
+				nanosleep (&curl_sleep_ts, NULL);
+			}
+			else
+				break;
+		}
+	} while (code != CURLE_OK);
 
 	if (code != CURLE_OK) {
-		/* TODO: CURLE_OPERATION_TIMEDOUT */
+#ifndef _DEBUG
 		uvls_logf ("%s [id: %d did: %d]: curl error #%d: %s\n",
 			w->word, w->wid, w->did, code, curl_easy_strerror (code));
+#else
+		vlog (VLOG_ERROR, "%s [id: %d did: %d]: curl error #%d: %s",
+			w->word, w->wid, w->did, code, curl_easy_strerror (code));
+#endif
 		goto done;
 	}
 

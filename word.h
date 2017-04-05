@@ -19,6 +19,7 @@
 #ifndef DIC_H__
 #define DIC_H__
 
+#include <time.h>
 #include <uv.h>
 #include "academic.h"
 #include "html.h"
@@ -47,6 +48,14 @@ typedef struct word_work_s {
 	int did;
 } word_work_t;
 
+typedef struct word_init_s {
+	unsigned int retries;
+	struct timespec sleep_ts;
+} word_init_t;
+
+
+extern void
+word_init (word_init_t *options);
 
 void
 w_word_cb (uv_work_t *req);

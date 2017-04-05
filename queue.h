@@ -19,10 +19,26 @@
 #ifndef QUEUE_H__
 #define QUEUE_H__
 
+#include <time.h>
 #include "academic.h"
 #include "term.h"
 #include "word.h"
 
+
+#define QUEUE_CURL_RETRIES		0
+#define QUEUE_CURL_RETRY_SLEEP	1000
+
+
+typedef struct queue_init_s {
+	struct {
+		unsigned int retries;
+		struct timespec retry_sleep;
+	} curl;
+} queue_init_t;
+
+
+extern void
+queue_init (queue_init_t *options);
 
 extern void
 queue_term (const char *word, int did[], int didnum, int limit, term_f cb);

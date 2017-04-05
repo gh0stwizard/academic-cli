@@ -229,6 +229,7 @@ timer_arg_cb (uv_timer_t *handle)
 {
 	timer_arg_t *args = (timer_arg_t *) handle->data;
 
+
 	parse_args (args->argc, args->argv);
 	free (args);
 	uv_timer_stop (handle);
@@ -238,15 +239,16 @@ timer_arg_cb (uv_timer_t *handle)
 static void
 term_cb (term_result_t *t)
 {
+	size_t entries = t->entries;
 	term_entry_t *e = t->list;
-	term_entry_t *end = e + t->entries;
+	term_entry_t *end = e + entries;
 	const char *word = t->word;
 	size_t len = strlen (word);
 	int matched = 0;
 
 
 	vlog (VLOG_TRACE, "%s [did: %d]: found %d entries",
-		word, t->did, t->entries);
+		word, t->did, entries);
 
 	/* find word id */
 	for (; e != end && ! matched; e++) {
@@ -262,19 +264,21 @@ term_cb (term_result_t *t)
 		queue_word_id (word, matched, t->did, word_cb);
 	}
 	else {
-#ifndef __DEBUG
-		uvls_printf ("%s: no exact match, %d records available:\n",
-			word, t->entries);
+#ifndef _DEBUG
+		if (entries > 0)
+			uvls_printf ("%s: no exact match, %d records available:\n",
+				word, entries);
+		else
+			uvls_printf ("%s: no records\n", word);
 		uvls_puts (
 			"------------------------------------"
 			"------------------------------------");
 		for (e = t->list; e != end; e++)
 			uvls_printf ("%s: %s\n", e->value, e->info);
-
 		uvls_printf ("\n");
 #else
 		vlog (VLOG_NOTE, "%s [did %d]: no exact match, %d available",
-			word, t->did, t->entries);
+			word, t->did, entries);
 #endif
 	}
 
@@ -323,21 +327,29 @@ parse_args (int argc, char *argv[])
 	int *did;
 	int didnum = 0;
 	int term_limit = ACADEMIC_TERM_LIMIT;
+	queue_init_t queue_opts;
 
+
+	queue_opts.curl.retries = QUEUE_CURL_RETRIES;
+	queue_opts.curl.retry_sleep.tv_sec = QUEUE_CURL_RETRY_SLEEP / 1000;
+	queue_opts.curl.retry_sleep.tv_nsec =
+		(QUEUE_CURL_RETRY_SLEEP % 1000) * 1000000;
 
 	NULL_CHECK(did = malloc (sizeof (*did)));
 
 	while (1) {
 		int index = 0;
 		static struct option opts[] = {
-			{ "dictionary",	required_argument,	0, 'd' },
-			{ "help",		no_argument,		0, 'h' },
-			{ "list",		no_argument,		0, 'l' },
-			{ "version",	no_argument,		0, 'v' },
+			{ "dictionary",     required_argument,  0, 'd' },
+			{ "help",           no_argument,        0, 'h' },
+			{ "list",           no_argument,        0, 'l' },
+			{ "retries",        required_argument,  0, 'r' },
+			{ "retry-timeout",  required_argument,  0, 't' },
+			{ "version",        no_argument,        0, 'v' },
 			{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long (argc, argv, "d:lhv?", opts, &index);
+		c = getopt_long (argc, argv, "d:lhr:t:v?", opts, &index);
 
 		if (c == -1)
 			break;
@@ -360,6 +372,25 @@ parse_args (int argc, char *argv[])
 			print_dids ();
 			return;
 
+		case 'r': {
+			int retries = atoi (optarg);
+			if (retries < 0) {
+				uvls_logf ("retries: invalid value '%s'\n", optarg);
+				return;
+			}
+			queue_opts.curl.retries = retries;
+		} 	break;
+
+		case 't': {
+			int sleep = atoi (optarg);
+			if (sleep < 0) {
+				uvls_logf ("retry-sleep: invalid value '%s'\n", optarg);
+				return;
+			}
+			queue_opts.curl.retry_sleep.tv_sec = sleep / 1000;
+			queue_opts.curl.retry_sleep.tv_nsec = (sleep % 1000) * 1000000;
+		}	break;
+
 		case 'v':
 			print_version ();
 			return;
@@ -370,6 +401,9 @@ parse_args (int argc, char *argv[])
 		}
 	}
 
+	/* set up options */
+	queue_init (&queue_opts);
+
 	while (optind < argc)
 		queue_term (argv[optind++], did, didnum, term_limit, term_cb);
 }
@@ -379,12 +413,16 @@ static void
 print_usage (void)
 {
 	uvls_puts ("Usage:\n"
-				"academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN\n"
-				"Options:");
-#define p(o, d) uvls_printf ("  %-24s %s\n", (o), (d))
+		"academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN\n"
+		"Options:");
+#define p(o, d) uvls_printf ("  %-28s %s\n", (o), (d))
 	p ("--dictionary ID, -d ID", "Use this dictionary ID.");
 	p ("--help, -h, -?", "Display this information.");
 	p ("--list, -l", "Display dictionary IDs.");
+	p ("--retries NUM, -r NUM",
+		"How many times to retry establish a connection.");
+	p ("--retry-timeout MS, -t MS",
+		"Delay between connection retries in milliseconds.");
 	p ("--version, -v", "Display version information.");
 #undef p
 }

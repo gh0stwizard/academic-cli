@@ -1,10 +1,10 @@
 * add support to locales diffent from utf-8
-* add all dictionaries en-ru, ru-en
+* add all dictionaries ru-en
 * store results into database
 * auto-restart curl download if last one has been failed
-* main.c: getopt (unistd.h) support
 * html.c: use myhtml_parse_chunk ()
 * use uv_cancel() for queued jobs
 * lowercase input words
 * cli.c: fix memory allocation in convert_html()
+* cli.c: use in-place modifications in convert_html()
 * main.c: detect when is possible to use colorized output

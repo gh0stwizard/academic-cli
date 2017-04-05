@@ -42,6 +42,21 @@ _word_id_close_cb (uv_handle_t *handle);
 
 
 extern void
+queue_init (queue_init_t *options)
+{
+	term_init_t term_opts;
+	word_init_t word_opts;
+
+
+	term_opts.retries = word_opts.retries = options->curl.retries;
+	term_opts.sleep_ts = word_opts.sleep_ts = options->curl.retry_sleep;
+
+	term_init (&term_opts);
+	word_init (&word_opts);
+}
+
+
+extern void
 queue_term (const char *word, int did[], int didnum, int limit, term_f cb)
 {
 	term_work_t *w;
