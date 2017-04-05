@@ -362,10 +362,16 @@ parse_args (int argc, char *argv[])
 		case 0: /* long options */
 			break;
 
-		case 'd':
-			did[didnum++] = atoi (optarg);
-			NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1)));
-			break;
+		case 'd': {
+			int id = atoi (optarg);
+			if (id >= 0 && id < ACADEMIC_DID_MAX) {
+				did[didnum++] = atoi (optarg);
+				NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1)));
+			}
+			else
+				uvls_printf ("dictionary: invalid value '%s', ignoring\n",
+					optarg);
+		}	break;
 
 		case 'h':
 		case '?':
@@ -426,6 +432,11 @@ parse_args (int argc, char *argv[])
 			print_usage ();
 			return;
 		}
+	}
+
+	if (didnum == 0) {
+		uvls_logf ("error: no dictionaries, see --dictionary option\n");
+		return;
 	}
 
 	/* set up options */
