@@ -302,6 +302,17 @@ word_cb (word_result_t *d)
 		"------------------------------------");
 
 	if (d->term && d->data) {
+		/* remove line breaks at the begining */
+		char *t = d->data->text;
+		size_t i;
+		for (i = 0; *t == '\n' || *t == '\r'; t++, i++);
+		d->data->length -= i;
+		memmove (d->data->text, d->data->text + i, d->data->length);
+		/* remove line breaks at the end */
+		for (t = d->data->text + d->data->length - 1;
+			*t == '\n' || *t == '\r';
+			t--, d->data->length--)
+			*t = '\0';
 		size_t len = convert_html (d->data, &cli_out);
 		uvls_printf ("%.*s\n\n", len, cli_out);
 	}
