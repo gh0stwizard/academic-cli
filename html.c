@@ -275,14 +275,14 @@ get_dd_text (myhtml_tree_node_t *node)
 			res->text = text;
 			res->length += 1;
 		}
-		else
-			level = tag_count - level;
+
+		tag_count = level;
 
 		if (next) {
-			tag_count = level;
 			node = next;
 		}
 		else {
+			level = tag_count - level;
 			while (tag_count-- > 0)
 				node = myhtml_node_parent (node);
 			node = myhtml_node_next (node);
