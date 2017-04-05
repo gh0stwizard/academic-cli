@@ -27,6 +27,11 @@ typedef enum {
 	 */
 	ACADEMIC_DID_SYNONYMUM_RU_EN,
 
+	/**
+     * Russian: Biology
+	 */
+	ACADEMIC_DID_ENC_BIOLOGY,
+
 	/* max limit */
 	ACADEMIC_DID_MAX
 } academic_did;
@@ -34,5 +39,7 @@ typedef enum {
 extern const char *academic_durl_fmt[ACADEMIC_DID_MAX];
 extern const char *academic_did_name[ACADEMIC_DID_MAX];
 
+extern const char *academic_did_desc_en[ACADEMIC_DID_MAX];
+extern const char *academic_did_desc_ru[ACADEMIC_DID_MAX];
 
 #endif /* ACADEMIC_H__ */
