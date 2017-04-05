@@ -166,6 +166,13 @@ convert_html (html_data_t *html, char **out)
 		}
 	}
 
+	if (len - off < html->length) {
+		/* copy ending */
+		vlog (VLOG_TRACE, "copy ending: len %zu off %zu document len %zu",
+			len, off, html->length);
+		memcpy (dst + len, txtp + (len - off), html->length - (len - off));
+		len += html->length - (len - off);
+	}
 
 done:
 	free_mycsi (csis, csi_sizes, csi_count);
