@@ -4,6 +4,7 @@
 * auto-restart curl download if last one has been failed
 * main.c: getopt (unistd.h) support
 * html.c: use myhtml_parse_chunk ()
-* html.c: linked div's
 * use uv_cancel() for queued jobs
 * lowercase input words
+* cli.c: fix memory allocation in convert_html()
+* main.c: detect when is possible to use colorized output
