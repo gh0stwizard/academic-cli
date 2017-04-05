@@ -152,6 +152,7 @@ convert_html (html_data_t *html, char **out)
 done:
 	free_mycsi (csis, csi_sizes, csi_count);
 
+	dst[len] = '\0';
 	*out = dst;
 	return len;
 }
