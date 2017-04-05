@@ -33,6 +33,11 @@ Options:
 ```
 
 
+## Credits
+
+[jsmn][5] - JSON parser by Serge A. Zaitsev
+
+
 ## License
 
     academic-cli -- a command line utility for ACADEMIC website.
@@ -56,3 +61,4 @@ Options:
 [2]: http://libuv.org/
 [3]: https://curl.haxx.se/
 [4]: https://github.com/lexborisov/myhtml
+[5]: https://github.com/zserge/jsmn
