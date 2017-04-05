@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include <uv.h>
 #include <curl/curl.h>
 #include "vlog.h"
@@ -10,8 +11,9 @@
 #include "cli.h"
 
 
+/* FIXME */
+#define VERSION "0.1"
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
-
 
 typedef struct timer_arg_s {
 	int argc;
@@ -20,7 +22,6 @@ typedef struct timer_arg_s {
 
 
 /* ------------------------------------------------------------------ */
-
 
 static void
 init_curl (void);
@@ -58,6 +59,17 @@ term_cb (term_result_t *terms);
 static void
 word_cb (word_result_t *d);
 
+static void
+parse_args (int argc, char *argv[]);
+
+static void
+print_usage (void);
+
+static void
+print_dids (void);
+
+static void
+print_version (void);
 
 /* ------------------------------------------------------------------ */
 
@@ -78,15 +90,19 @@ main (int argc, char *argv[])
 	init_myhtml ();
 	init_uv ();
 
+
+	/* used only when debug is on */
 	print_curl_version ();
 	print_myhtml_version ();
 	print_uv_version ();
 
+	/* process args with a delay */
 	NULL_CHECK(myargs = malloc (sizeof (*myargs)));
 	myargs->argc = argc;
 	myargs->argv = argv;
 	timer_arg.data = (void *) myargs;
 
+	/* run loop */
 	uv_run (loop, UV_RUN_DEFAULT);
 
 	fini_uv ();
@@ -194,21 +210,8 @@ static void
 timer_arg_cb (uv_timer_t *handle)
 {
 	timer_arg_t *args = (timer_arg_t *) handle->data;
-	int argc = args->argc;
-	char **argv = args->argv;
 
-
-	int did[] = {
-//		ACADEMIC_DID_SYNONYMUM_RU_EN,
-		ACADEMIC_DID_SYNONYMUM_EN_RU,
-//		ACADEMIC_DID_UNIVERSAL_EN_RU,
-//		ACADEMIC_DID_ENG_RUS,
-	};
-
-	while (argc-- > 1) {
-		queue_term (argv[argc], did, ARRAY_SIZE(did), ACADEMIC_TERM_LIMIT, term_cb);
-	}
-
+	parse_args (args->argc, args->argv);
 	free (args);
 	uv_timer_stop (handle);
 }
@@ -268,14 +271,15 @@ word_cb (word_result_t *d)
 
 
 #ifndef _DEBUG
-	uvls_puts (d->word);
+	uvls_printf ("%s [%d: %s]\n",
+		d->word, d->did, academic_did_desc_en[d->did]);
 	uvls_puts (
 		"------------------------------------"
 		"------------------------------------");
 
 	if (d->term && d->data) {
-		(void) convert_html (d->data, &cli_out);
-		uvls_printf ("%s\n\n", cli_out);
+		size_t len = convert_html (d->data, &cli_out);
+		uvls_printf ("%.*s\n\n", len, cli_out);
 	}
 	else
 		uvls_printf ("ERROR: no data\n\n");
@@ -291,4 +295,105 @@ word_cb (word_result_t *d)
 	if (cli_out != NULL)
 		free (cli_out);
 	free_word_results (d);
+}
+
+
+static void
+parse_args (int argc, char *argv[])
+{
+	int c;
+	int *did;
+	int didnum = 0;
+	int term_limit = ACADEMIC_TERM_LIMIT;
+
+
+	NULL_CHECK(did = malloc (sizeof (*did)));
+
+	while (1) {
+		int index = 0;
+		static struct option opts[] = {
+			{ "dictionary",	required_argument,	0, 'd' },
+			{ "help",		no_argument,		0, 'h' },
+			{ "list",		no_argument,		0, 'l' },
+			{ "version",	no_argument,		0, 'v' },
+			{ 0, 0, 0, 0 }
+		};
+
+		c = getopt_long (argc, argv, "d:lhv?", opts, &index);
+
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 0: /* long options */
+			break;
+
+		case 'd':
+			did[didnum++] = atoi (optarg);
+			NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1)));
+			break;
+
+		case 'h':
+		case '?':
+			print_usage ();
+			return;
+
+		case 'l':
+			print_dids ();
+			return;
+
+		case 'v':
+			print_version ();
+			return;
+
+		default:
+			print_usage ();
+			return;
+		}
+	}
+
+	while (optind < argc)
+		queue_term (argv[optind++], did, didnum, term_limit, term_cb);
+}
+
+
+static void
+print_usage (void)
+{
+	uvls_puts ("Usage:\n"
+				"academic-cli: [options] word1 word2 ... wordN\n"
+				"Options:");
+#define p(o, d) uvls_printf ("  %-24s %s\n", (o), (d))
+	p ("--dictionary ID, -d ID", "Use this dictionary ID.");
+	p ("--help, -h, -?", "Display this information.");
+	p ("--list, -l", "Display dictionary IDs.");
+	p ("--version, -v", "Display version information.");
+#undef p
+}
+
+
+static void
+print_dids (void)
+{
+	uvls_puts (" ID  | DICTIONARY");
+	uvls_puts (
+		"------------------------------------"
+		"------------------------------------");
+	for (int i = 0; i < ACADEMIC_DID_MAX; i++)
+		uvls_printf ("%4d   %s\n", i, academic_did_desc_en[i]);
+}
+
+
+static void
+print_version (void)
+{
+	curl_version_info_data *c = curl_version_info (CURLVERSION_NOW);
+	myhtml_version_t m = myhtml_version ();
+
+
+	uvls_printf ("academic-cli version %s\n", VERSION);
+	uvls_printf ("Powered by: curl %s; libuv %s; myhtml %d.%d.%d\n",
+		c->version,
+		uv_version_string (),
+		m.major, m.minor, m.patch);
 }

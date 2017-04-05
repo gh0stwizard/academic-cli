@@ -56,6 +56,7 @@ w_term_cb (uv_work_t *req)
 	code = curl_easy_perform (handle);
 
 	if (code != CURLE_OK) {
+		/* TODO: CURLE_OPERATION_TIMEDOUT */
 		uvls_logf ("%s: curl [%d]: %s\n",
 			w->word, code, curl_easy_strerror (code));
 		goto done;
