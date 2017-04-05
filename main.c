@@ -290,7 +290,7 @@ word_cb (word_result_t *d)
 
 #ifndef _DEBUG
 	uvls_printf ("%s [%d: %s]\n",
-		d->word, d->did, academic_did_desc_en[d->did]);
+		d->word, d->did, academic_dname_en[d->did]);
 	uvls_puts (
 		"------------------------------------"
 		"------------------------------------");
@@ -398,7 +398,7 @@ print_dids (void)
 		"------------------------------------"
 		"------------------------------------");
 	for (int i = 0; i < ACADEMIC_DID_MAX; i++)
-		uvls_printf ("%4d   %s\n", i, academic_did_desc_en[i]);
+		uvls_printf ("%4d   %s\n", i, academic_dname_en[i]);
 }
 
 
