@@ -84,7 +84,10 @@ static void
 print_usage (void);
 
 static void
-print_dids (void);
+print_dids (unsigned int start, unsigned int end);
+
+static void
+print_dtypes (void);
 
 static void
 print_version (void);
@@ -125,7 +128,7 @@ main (int argc, char *argv[])
 
 	fini_uv ();
 	fini_myhtml ();
-	fini_curl ();	
+	fini_curl ();
 
 	return 0;
 }
@@ -168,7 +171,6 @@ init_uv (void)
 {
 	NULL_CHECK(loop = uv_default_loop ());
 
-	
 
 	uv_signal_init (loop, &sig_int);
 	uv_signal_start (&sig_int, sig_int_cb, SIGINT);
@@ -342,14 +344,16 @@ parse_args (int argc, char *argv[])
 		static struct option opts[] = {
 			{ "dictionary",     required_argument,  0, 'd' },
 			{ "help",           no_argument,        0, 'h' },
-			{ "list",           no_argument,        0, 'l' },
+			{ "list",           required_argument,  0, 'l' },
+			{ "list-all",       no_argument,        0, 'L' },
+			{ "list-types",     no_argument,        0, 'T' },
 			{ "retries",        required_argument,  0, 'r' },
 			{ "retry-timeout",  required_argument,  0, 't' },
 			{ "version",        no_argument,        0, 'v' },
 			{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long (argc, argv, "d:lhr:t:v?", opts, &index);
+		c = getopt_long (argc, argv, "d:l:hr:t:v?LT", opts, &index);
 
 		if (c == -1)
 			break;
@@ -369,7 +373,22 @@ parse_args (int argc, char *argv[])
 			return;
 
 		case 'l':
-			print_dids ();
+			if (strncmp ("all", optarg, 4) == 0)
+				print_dids (0, ACADEMIC_DID_MAX);
+			else if (strncmp ("en-ru", optarg, 6) == 0)
+				print_dids (
+					ACADEMIC_DID_UNIVERSAL_EN_RU,
+					ACADEMIC_DID_SYNONYMUM_RU_EN);
+			else if (strncmp ("ru-en", optarg, 6) == 0)
+				print_dids (
+					ACADEMIC_DID_SYNONYMUM_RU_EN,
+					ACADEMIC_DID_ENC_BIOLOGY);
+			else if (strncmp ("enc:ru", optarg, 7) == 0)
+				print_dids (
+					ACADEMIC_DID_ENC_BIOLOGY,
+					ACADEMIC_DID_MAX);
+			else
+				uvls_logf ("list: invalid value '%s'\n", optarg);
 			return;
 
 		case 'r': {
@@ -395,6 +414,14 @@ parse_args (int argc, char *argv[])
 			print_version ();
 			return;
 
+		case 'L':
+			print_dids (0, ACADEMIC_DID_MAX);
+			return;
+
+		case 'T':
+			print_dtypes ();
+			return;
+
 		default:
 			print_usage ();
 			return;
@@ -418,7 +445,9 @@ print_usage (void)
 #define p(o, d) uvls_printf ("  %-28s %s\n", (o), (d))
 	p ("--dictionary ID, -d ID", "Use this dictionary ID.");
 	p ("--help, -h, -?", "Display this information.");
-	p ("--list, -l", "Display dictionary IDs.");
+	p ("--list TYPE, -l TYPE", "Display dictionary IDs by type. See --list-types.");
+	p ("--list-all, -L", "Display all dictionary IDs.");
+	p ("--list-types, -T", "Display dictionary types.");
 	p ("--retries NUM, -r NUM",
 		"How many times to retry establish a connection.");
 	p ("--retry-timeout MS, -t MS",
@@ -429,14 +458,27 @@ print_usage (void)
 
 
 static void
-print_dids (void)
+print_dids (unsigned int start, unsigned int end)
 {
 	uvls_puts (" ID  | DICTIONARY");
 	uvls_puts (
 		"------------------------------------"
 		"------------------------------------");
-	for (int i = 0; i < ACADEMIC_DID_MAX; i++)
+	for (unsigned int i = start; i < end; i++)
 		uvls_printf ("%4d   %s\n", i, academic_dname_en[i]);
+}
+
+
+static void
+print_dtypes (void)
+{
+	uvls_puts ("List of available dictionary types:");
+#define p(o, d) uvls_printf ("  %-14s %s\n", (o), (d))
+	p ("all", "All dictionaries.");
+	p ("en-ru", "English-Russian dictionaries.");
+	p ("ru-en", "Russian-English dictionaries.");
+	p ("enc:ru", "Russian encyclopedies.");
+#undef p
 }
 
 

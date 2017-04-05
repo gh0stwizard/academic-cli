@@ -187,7 +187,7 @@ const char *academic_dname_en[ACADEMIC_DID_MAX] = {
 	/* ru -> en */
 	"Russian-English Synonyms Dictionary",
 	/* enc: ru: biology */
-	"Biological Encyclopedia",
+	"Russian Biological Encyclopedia",
 };
 
 const char *academic_dname_ru[ACADEMIC_DID_MAX] = {
