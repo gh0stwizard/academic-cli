@@ -11,7 +11,7 @@ website.
 
 * [libuv][2]
 * [curl][3]
-* [myhtml][4] - you have to update submodule in this
+* [myhtml][4] - you have to update the submodule in this git repo.
 
 
 ## Features
