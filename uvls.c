@@ -33,8 +33,6 @@
 #define NULL_CHECK(x) do { assert ((x) != NULL); } while (0)
 #endif
 
-#define MAX_QUEUED 16
-
 
 /* ------------------------------------------------------------------ */
 
@@ -60,9 +58,6 @@ static uv_mutex_t timelock;
 
 static void
 write_cb (uv_write_t *req, int status);
-
-inline static void
-free_write_req (uv_write_t *req);
 
 static void
 uvls_init_once (void);
@@ -90,15 +85,15 @@ uvls_init_once (void)
 	if (uvls_err == NULL)
 		uvls_err = (uv_stream_t *) &tty_err;
 
-	CHECK(uv_tty_init (myloop, (uv_tty_t *) uvls_out, 1, 0));
-	CHECK(uv_tty_init (myloop, (uv_tty_t *) uvls_err, 2, 0));
+	CHECK(uv_tty_init (myloop, (uv_tty_t *) uvls_out, UVLS_STDOUT, 0));
+	CHECK(uv_tty_init (myloop, (uv_tty_t *) uvls_err, UVLS_STDERR, 0));
 
-	if (uv_guess_handle (1) == UV_TTY) {
+	if (uv_guess_handle (UVLS_STDOUT) == UV_TTY) {
 		CHECK(uv_tty_set_mode
 			((uv_tty_t *) uvls_out, UV_TTY_MODE_NORMAL));
 	}
 
-	if (uv_guess_handle (2) == UV_TTY) {
+	if (uv_guess_handle (UVLS_STDERR) == UV_TTY) {
 		CHECK(uv_tty_set_mode
 			((uv_tty_t *) uvls_err, UV_TTY_MODE_NORMAL));
 	}
@@ -143,13 +138,14 @@ uvls_vprintf (uv_stream_t *stream, const char *fmt, va_list ap)
 
 
 	if (fmt == NULL || strlen (fmt) == 0)
-		return UV_EINVAL;
+		return 0;
 
 	NULL_CHECK(req = (write_req_t *) malloc (sizeof (*req)));
 	NULL_CHECK(data = malloc (sizeof (*data) * data_size));
 
 	vsnprintf (data, data_size, fmt, ap);
 	data_len = strlen (data);
+	/* increase buffer when needed */
 	while (data_len == (data_size - 1)) {
 		data_size *= UVLS_BUFFER_FACTOR;
 		NULL_CHECK(newdata = realloc (data, data_size));
@@ -207,7 +203,7 @@ uvls_date (const char *fmt, char date[], size_t size)
 		(n != 0) && (nnum < UVLS_NSEC_SIZE);
 		nnum++, n /= 10L);
 	snprintf (nstr + UVLS_NSEC_SIZE - nnum, nnum + 1, "%li", ts.tv_nsec);
-	/* nanosecs: append to date string */
+	/* nanosecs: append to the end of the date string */
 	date[len] = '.';
 	memcpy (date + len + 1, nstr, UVLS_NSEC_DIGITS);
 	len += UVLS_NSEC_DIGITS + 1;
@@ -240,13 +236,6 @@ static void
 write_cb (uv_write_t *req, int status)
 {
 	(void) status;
-	free_write_req (req);
-}
-
-
-inline static void
-free_write_req (uv_write_t *req)
-{
 	write_req_t *wr = (write_req_t *) req;
 	free (wr->buf.base);
 	free (wr);

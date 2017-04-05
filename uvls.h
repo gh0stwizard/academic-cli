@@ -30,8 +30,12 @@
 #define UVLS_NSEC_DIGITS	6
 /* how many digits in tv_nsec */
 #define UVLS_NSEC_SIZE		9
+/* the data will be copied into buffer before printed out */
 #define UVLS_BUFFER_SIZE	1024
 #define UVLS_BUFFER_FACTOR	2
+/* constants */
+#define UVLS_STDOUT			1
+#define UVLS_STDERR			2
 
 /* user-defined streams */
 extern uv_stream_t *uvls_out;
@@ -55,9 +59,11 @@ uvls_fprintf (uv_stream_t *stream, const char *fmt, ...);
 extern size_t
 uvls_vprintf (uv_stream_t *stream, const char *fmt, va_list ap);
 
+/* prepends a date string */
 extern size_t
 uvls_flogf (uv_stream_t *stream, const char *fmt, ...);
 
+/* creates a date string */
 extern size_t
 uvls_date (const char *fmt, char date[], size_t size);
 
