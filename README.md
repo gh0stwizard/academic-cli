@@ -6,6 +6,8 @@
 This is a command line utility to the [Academic Dictionaries and Encyclopedias][1]
 website.
 
+![Screenshot](/misc/screenshot.png)
+
 
 ## Dependencies
 
