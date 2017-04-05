@@ -276,7 +276,7 @@ term_cb (term_result_t *t)
 			"------------------------------------"
 			"------------------------------------");
 		for (e = t->list; e != end; e++)
-			uvls_printf ("%s: %s\n", e->value, e->info);
+			uvls_printf ("%s:\n%s\n\n", e->value, e->info);
 		uvls_printf ("\n");
 #else
 		vlog (VLOG_NOTE, "%s [did %d]: no exact match, %d available",
@@ -365,12 +365,13 @@ parse_args (int argc, char *argv[])
 		case 'd': {
 			int id = atoi (optarg);
 			if (id >= 0 && id < ACADEMIC_DID_MAX) {
-				did[didnum++] = atoi (optarg);
+				did[didnum++] = id;
 				NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1)));
 			}
-			else
+			else {
 				uvls_printf ("dictionary: invalid value '%s', ignoring\n",
 					optarg);
+			}
 		}	break;
 
 		case 'h':
