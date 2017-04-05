@@ -76,9 +76,9 @@ convert_html (html_data_t *html, char **out)
 	html_el_t *elend = el + elements;
 	extern size_t make_mycsi (char ***, size_t **);
 	extern void free_mycsi (char **, size_t *, size_t);
-	char **csis;
+	char **csis = NULL;
 	size_t *csi_sizes;
-	size_t csi_count;
+	size_t csi_count = 0;
 	char *reset;
 	size_t reset_size;
 
@@ -175,7 +175,8 @@ convert_html (html_data_t *html, char **out)
 	}
 
 done:
-	free_mycsi (csis, csi_sizes, csi_count);
+	if (csi_count > 0)
+		free_mycsi (csis, csi_sizes, csi_count);
 
 	dst[len] = '\0';
 	*out = dst;
