@@ -49,7 +49,7 @@ create_csi (SGR options[], size_t size, char **out)
 
 	for (int *end = o + size / sizeof (*o); o != end; o++) {
 		if ((*o >= 0) && (*o < SGR_MAX)) {
-			snprintf (csi, 4, "%d", *o);
+			snprintf (csi, ARRAY_SIZE(csi), "%d", *o);
 			size_t csi_len = strlen (csi);
 			snprintf (dst + len, CSI_MAX_SIZE - len, "%s;", csi);
 			len += csi_len + 1;
@@ -57,7 +57,7 @@ create_csi (SGR options[], size_t size, char **out)
 	}
 
 	if (len >= esc_len + 1) /* ESC + 'n;' */
-		snprintf (dst + len - 1, CSI_MAX_SIZE, SGR_MOD);
+		snprintf (dst + len - 1, CSI_MAX_SIZE - len, SGR_MOD);
 
 	*out = strndup (dst, CSI_MAX_SIZE);
 
@@ -102,6 +102,7 @@ convert_html (html_data_t *html, char **out)
 		size_t start = el->start;
 		size_t end = el->end;
 		size_t delta = end - start;
+		size_t total_csz = 0;
 
 		if (len - off < start) {
 			/* copy missing fragment */
@@ -120,8 +121,6 @@ convert_html (html_data_t *html, char **out)
 		vlog (VLOG_TRACE, "'%.*s' start %zu end %zu tags %zu",
 			delta, txtp + start, start, end, el->tag_count);
 
-
-		size_t total_csz = 0;
 		for (; tag != tagend; tag++) {
 			size_t csz = 0;
 			char *csi;

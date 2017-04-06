@@ -291,47 +291,55 @@ term_cb (term_result_t *t)
 static void
 word_cb (word_result_t *d)
 {
-	char *cli_out = NULL;
-	char *term = d->term;
+	char *out = NULL;
 	html_data_t *data = d->data;
+	size_t len;
 
 
 #ifndef _DEBUG
-	uvls_printf ("%s [%d: %s]\n",
-		d->word, d->did, academic_dname_en[d->did]);
-	uvls_puts (
-		"------------------------------------"
-		"------------------------------------");
 
-	if (term && data) {
+
+	if (data != NULL) {
+		uvls_printf ("%s [%d: %s]\n",
+			d->word, d->did, academic_dname_en[d->did]);
+		uvls_puts (
+			"------------------------------------"
+			"------------------------------------");
 		/* remove line breaks at the begining */
-		char *t = data->text;
+		len = convert_html (data, &out);
+		char *t = out;
 		size_t i;
 		for (i = 0; *t == '\n' || *t == '\r'; t++, i++);
-		data->length -= i;
+		len -= i;
 		if (i > 0)
-			memmove (data->text, t, data->length);
+			memmove (out, t, len);
 		/* remove line breaks at the end */
-		t = data->text + data->length - 1;
-		for (i = data->length; i > 0 && (*t == '\n' || *t == '\r'); i--, t--)
+		t = out + len - 1;
+		for (i = len; i > 0 && (*t == '\n' || *t == '\r'); i--, t--)
 			*t = '\0';
-		data->length = i;
-		size_t len = convert_html (data, &cli_out);
-		uvls_printf ("%.*s\n\n", len, cli_out);
+		len = i;
+		uvls_printf ("%.*s\n\n", len, out);
 	}
-	else
-		uvls_printf ("ERROR: no data\n\n");
+	else {
+		uvls_logf ("%s: error: no data\n");
+	}
 #else
-	vlog (VLOG_DEBUG, "%s [wid: %d did: %d]: length of data %zu bytes",
-		d->word, d->wid, d->did, d->data->length);
-	vlog (VLOG_DEBUG, "%s [wid: %d did: %d]: %s",
-		d->word, d->wid, d->did, d->data->text);
-	(void) convert_html (d->data, &cli_out);
-	uvls_logf ("%s\n", cli_out);
+	if (data != NULL) {
+		vlog (VLOG_TRACE, "%s [wid: %d did: %d]: data length %zu bytes",
+			d->word, d->wid, d->did, data->length);
+		vlog (VLOG_TRACE, "%s [wid: %d did: %d]: %.*s",
+			d->word, d->wid, d->did, data->length, data->text);
+		len = convert_html (d->data, &out);
+		vlog (VLOG_TRACE, "%.*s", len, out);
+	}
+	else {
+		vlog (VLOG_ERROR, "%s [wid: %d did: %d]: no data",
+			d->word, d->wid, d->did);
+	}
 #endif
 
-	if (cli_out != NULL)
-		free (cli_out);
+	if (out != NULL)
+		free (out);
 	free_word_results (d);
 }
 
