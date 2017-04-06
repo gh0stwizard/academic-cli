@@ -38,6 +38,8 @@ typedef struct timer_arg_s {
 	char **argv;
 } timer_arg_t;
 
+static int quite = 0;
+
 
 /* ------------------------------------------------------------------ */
 
@@ -267,22 +269,28 @@ term_cb (term_result_t *t)
 	}
 	else {
 #ifndef _DEBUG
+		if (quite)
+			goto done;
+
 		if (entries > 0)
-			uvls_printf ("%s: no exact match, %d records available:\n",
-				word, entries);
+			uvls_logf ("%s [%d: %s]: no exact match, %d records available:\n",
+				word, t->did, academic_dname_en[t->did], entries);
 		else
-			uvls_printf ("%s: no records\n", word);
-		uvls_puts (
+			uvls_logf ("%s [%d: %s]: no records\n",
+				word, t->did, academic_dname_en[t->did]);
+		uvls_logf (
 			"------------------------------------"
-			"------------------------------------");
+			"------------------------------------\n");
 		for (e = t->list; e != end; e++)
-			uvls_printf ("%s:\n%s\n\n", e->value, e->info);
-		uvls_printf ("\n");
+			uvls_logf ("%s:\n%s\n\n", e->value, e->info);
+		uvls_logf ("\n");
 #else
 		vlog (VLOG_NOTE, "%s [did %d]: no exact match, %d available",
 			word, t->did, entries);
 #endif
 	}
+
+done:
 
 	free_term_results (t);
 }
@@ -297,8 +305,6 @@ word_cb (word_result_t *d)
 
 
 #ifndef _DEBUG
-
-
 	if (data != NULL) {
 		uvls_printf ("%s [%d: %s]\n",
 			d->word, d->did, academic_dname_en[d->did]);
@@ -321,7 +327,8 @@ word_cb (word_result_t *d)
 		uvls_printf ("%.*s\n\n", len, out);
 	}
 	else {
-		uvls_logf ("%s: error: no data\n", d->word);
+		uvls_logf ("%s [%d: %s]: no data\n",
+			d->word, d->did, academic_dname_en[d->did]);
 	}
 #else
 	if (data != NULL) {
@@ -330,7 +337,7 @@ word_cb (word_result_t *d)
 		vlog (VLOG_TRACE, "%s [wid: %d did: %d]: %.*s",
 			d->word, d->wid, d->did, data->length, data->text);
 		len = convert_html (d->data, &out);
-		vlog (VLOG_TRACE, "%.*s", len, out);
+		uvls_printf ("%.*s\n\n", len, out);
 	}
 	else {
 		vlog (VLOG_ERROR, "%s [wid: %d did: %d]: no data",
@@ -347,7 +354,7 @@ word_cb (word_result_t *d)
 static void
 parse_args (int argc, char *argv[])
 {
-	int c;
+	int r;
 	int *did;
 	int didnum = 0;
 	int term_limit = ACADEMIC_TERM_LIMIT;
@@ -361,6 +368,11 @@ parse_args (int argc, char *argv[])
 
 	NULL_CHECK(did = malloc (sizeof (*did)));
 
+#define add_did(n) do { \
+did[didnum++] = (n); \
+NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
+} while (0)
+
 	while (1) {
 		int index = 0;
 		static struct option opts[] = {
@@ -371,29 +383,27 @@ parse_args (int argc, char *argv[])
 			{ "list-types",     no_argument,        0, 'T' },
 			{ "retries",        required_argument,  0, 'r' },
 			{ "retry-timeout",  required_argument,  0, 't' },
+			{ "quite",          no_argument,        0, 'q' },
 			{ "version",        no_argument,        0, 'v' },
 			{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long (argc, argv, "d:l:hr:t:v?LT", opts, &index);
+		r = getopt_long (argc, argv, "d:l:hr:t:qv?D:LT", opts, &index);
 
-		if (c == -1)
+		if (r == -1)
 			break;
 
-		switch (c) {
+		switch (r) {
 		case 0: /* long options */
 			break;
 
 		case 'd': {
 			int id = atoi (optarg);
-			if (id >= 0 && id < ACADEMIC_DID_MAX) {
-				did[didnum++] = id;
-				NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1)));
-			}
-			else {
+			if (id >= 0 && id < ACADEMIC_DID_MAX)
+				add_did(id);
+			else
 				uvls_printf ("dictionary: invalid value '%s', ignoring\n",
 					optarg);
-			}
 		}	break;
 
 		case 'h':
@@ -439,9 +449,39 @@ parse_args (int argc, char *argv[])
 			queue_opts.curl.retry_sleep.tv_nsec = (sleep % 1000) * 1000000;
 		}	break;
 
+		case 'q':
+			quite = 1;
+			break;
+
 		case 'v':
 			print_version ();
 			return;
+
+		case 'D': {
+			char *t = optarg;
+			char c = '\0';
+			int s = -1, e = ACADEMIC_DID_MAX;
+			sscanf (t, "%u%c%u", &s, &c, &e);
+			if (c != '-')
+				e = s;
+			if (s >= 0 && e >= 0)
+				while (s <= e)
+					add_did (s++);
+			/* handle comma separated list of ranges */
+			for (; *t != '\0'; t++) {
+				if (*t == ',' && *(t+1) != '\0') {
+					s = -1;
+					e = ACADEMIC_DID_MAX;
+					c = '\0';
+					sscanf (++t, "%u%c%u", &s, &c, &e);
+					if (c != '-')
+						e = s;
+					if (s >= 0 && e >= 0)
+						while (s <= e)
+							add_did (s++);
+				} /* if */
+			} /* for */
+		}	break;
 
 		case 'L':
 			print_dids (0, ACADEMIC_DID_MAX);
@@ -456,6 +496,8 @@ parse_args (int argc, char *argv[])
 			return;
 		}
 	}
+
+#undef add_did
 
 	if (didnum == 0) {
 		uvls_logf ("error: no dictionaries, see --dictionary option\n");
@@ -478,6 +520,7 @@ print_usage (void)
 		"Options:");
 #define p(o, d) uvls_printf ("  %-28s %s\n", (o), (d))
 	p ("--dictionary ID, -d ID", "Use this dictionary ID.");
+	p ("-D RANGE", "Use range of dictionary IDs, e.g. \"1-5,7,12\".");
 	p ("--help, -h, -?", "Display this information.");
 	p ("--list TYPE, -l TYPE", "Display dictionary IDs by type. See --list-types.");
 	p ("--list-all, -L", "Display all dictionary IDs.");
@@ -486,6 +529,7 @@ print_usage (void)
 		"How many times to retry establish a connection.");
 	p ("--retry-timeout MS, -t MS",
 		"Delay between connection retries in milliseconds.");
+    p ("--quite, -q", "Be quite: print out valueable information only.");
 	p ("--version, -v", "Display version information.");
 #undef p
 }
