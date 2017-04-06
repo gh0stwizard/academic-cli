@@ -39,7 +39,7 @@ curl_mem_write_cb (char *data, size_t size, size_t nmemb, void *userp)
 		return realsize;
 	}
 
-	vlog (VLOG_ERROR, "%s: realloc: out of memory", __func__);
+	vlog (VLOG_ERROR, "realloc: out of memory");
 
 	return 0;
 }

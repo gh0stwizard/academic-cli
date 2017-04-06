@@ -272,21 +272,22 @@ term_cb (term_result_t *t)
 		if (quite)
 			goto done;
 
-		if (entries > 0)
-			uvls_logf ("%s [%d: %s]: no exact match, %d records available:\n",
+		if (entries > 0) {
+			uvls_logf ("%s [%d: %s]:\nno exact match, %d records available:\n",
 				word, t->did, academic_dname_en[t->did], entries);
-		else
+			uvls_logf (
+				"------------------------------------"
+				"------------------------------------\n");
+			for (e = t->list; e != end; e++)
+				uvls_logf ("%s:\n%s\n\n", e->value, e->info);
+		}
+		else {
 			uvls_logf ("%s [%d: %s]: no records\n",
 				word, t->did, academic_dname_en[t->did]);
-		uvls_logf (
-			"------------------------------------"
-			"------------------------------------\n");
-		for (e = t->list; e != end; e++)
-			uvls_logf ("%s:\n%s\n\n", e->value, e->info);
-		uvls_logf ("\n");
+		}
 #else
-		vlog (VLOG_NOTE, "%s [did %d]: no exact match, %d available",
-			word, t->did, entries);
+		vlog (VLOG_NOTE, "%s [%d: %d]: no exact match, %d available",
+			word, t->did, academic_dname_en[t->did], entries);
 #endif
 	}
 
@@ -460,25 +461,31 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 		case 'D': {
 			char *t = optarg;
 			char c = '\0';
-			int s = -1, e = ACADEMIC_DID_MAX;
+			int s = -1, e = ACADEMIC_DID_MAX - 1;
 			sscanf (t, "%u%c%u", &s, &c, &e);
 			if (c != '-')
 				e = s;
-			if (s >= 0 && e >= 0)
-				while (s <= e)
-					add_did (s++);
+			if (s >= 0 && s < ACADEMIC_DID_MAX &&
+				e >= 0 && e < ACADEMIC_DID_MAX)
+			{
+				for (; s <= e; s++)
+					add_did(s);
+			}
 			/* handle comma separated list of ranges */
 			for (; *t != '\0'; t++) {
 				if (*t == ',' && *(t+1) != '\0') {
 					s = -1;
-					e = ACADEMIC_DID_MAX;
+					e = ACADEMIC_DID_MAX - 1;
 					c = '\0';
 					sscanf (++t, "%u%c%u", &s, &c, &e);
 					if (c != '-')
 						e = s;
-					if (s >= 0 && e >= 0)
-						while (s <= e)
-							add_did (s++);
+					if (s >= 0 && s < ACADEMIC_DID_MAX &&
+						e >= 0 && e < ACADEMIC_DID_MAX)
+					{
+						for (; s <= e; s++)
+							add_did(s);
+					}
 				} /* if */
 			} /* for */
 		}	break;
