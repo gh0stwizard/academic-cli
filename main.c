@@ -321,7 +321,7 @@ word_cb (word_result_t *d)
 		uvls_printf ("%.*s\n\n", len, out);
 	}
 	else {
-		uvls_logf ("%s: error: no data\n");
+		uvls_logf ("%s: error: no data\n", d->word);
 	}
 #else
 	if (data != NULL) {
