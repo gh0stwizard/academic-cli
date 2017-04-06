@@ -97,7 +97,7 @@ w_term_cb (uv_work_t *req)
 		{
 			if (retry++ < curl_retries) {
 				vlog (VLOG_WARN, "%s: retry #%d", w->word, retry);
-				nanosleep (&curl_sleep_ts, NULL);
+				(void) nanosleep (&curl_sleep_ts, NULL);
 			}
 			else
 				break;
@@ -106,8 +106,9 @@ w_term_cb (uv_work_t *req)
 
 	if (code != CURLE_OK) {
 #ifndef _DEBUG
-		uvls_logf ("%s: curl error #%d: %s\n",
-			w->word, code, curl_easy_strerror (code));
+		uvls_logf ("%s [%d: %s]: curl error #%d: %s\n",
+			w->word, w->did, academic_dname_en[w->did],
+			code, curl_easy_strerror (code));
 #else
 		vlog (VLOG_ERROR, "%s: curl error #%d: %s",
 			w->word, code, curl_easy_strerror (code));
