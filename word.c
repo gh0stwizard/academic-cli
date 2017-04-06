@@ -57,6 +57,7 @@ w_word_cb (uv_work_t *req)
 	snprintf (url, MAX_URL_SIZE, academic_durl_fmt[w->did], w->wid);
 
 	NULL_CHECK(storage.data = malloc (sizeof (char)));
+	storage.size = 0;
 	NULL_CHECK(result = malloc (sizeof (*result)));
 	result->word = w->word;
 	result->term = NULL;
@@ -97,6 +98,7 @@ w_word_cb (uv_work_t *req)
 			if (retry++ < curl_retries) {
 				vlog (VLOG_WARN, "%s [id: %d did: %d]: retry #%d",
 					w->word, w->wid, w->did, retry);
+				storage.size = 0;
 				(void) nanosleep (&curl_sleep_ts, NULL);
 			}
 			else

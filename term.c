@@ -59,6 +59,7 @@ w_term_cb (uv_work_t *req)
 		w->limit, academic_did_name[w->did], w->word);
 
 	NULL_CHECK(storage.data = malloc (sizeof (char)));
+	storage.size = 0;
 	NULL_CHECK(result = malloc (sizeof (*result)));
 	result->word = w->word;
 	result->did = w->did;
@@ -97,6 +98,7 @@ w_term_cb (uv_work_t *req)
 		{
 			if (retry++ < curl_retries) {
 				vlog (VLOG_WARN, "%s: retry #%d", w->word, retry);
+				storage.size = 0;
 				(void) nanosleep (&curl_sleep_ts, NULL);
 			}
 			else
@@ -116,7 +118,7 @@ w_term_cb (uv_work_t *req)
 		goto done;
 	}
 
-	vlog (VLOG_TRACE, "%s: parsing json data...", w->word);
+	vlog (VLOG_TRACE, "%s: parsing json data...\n", w->word);
 	result->entries = parse_json (storage.data, storage.size, &result->list);
 
 done:
