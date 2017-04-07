@@ -31,6 +31,7 @@
 
 static unsigned int curl_retries;
 static struct timespec curl_sleep_ts;
+static long connect_timeout;
 
 /* ------------------------------------------------------------------ */
 
@@ -38,6 +39,7 @@ static struct timespec curl_sleep_ts;
 extern void
 term_init (term_init_t *options)
 {
+	connect_timeout = options->connect_timeout;
 	curl_retries = options->retries;
 	curl_sleep_ts = options->sleep_ts;
 }
@@ -70,15 +72,14 @@ w_term_cb (uv_work_t *req)
 	NULL_CHECK(handle = curl_easy_init ());
 
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_URL, url));
+	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_FOLLOWLOCATION, 1L));
 #ifdef _DEBUG_CURL
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_VERBOSE, 1L));
 #else
 	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_VERBOSE, 0L));
 #endif
-	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_LOW_SPEED_TIME, 3L));
-	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_LOW_SPEED_LIMIT, 1L));
-	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_CONNECTTIMEOUT, 30L));
-	CURL_CHECK(curl_easy_setopt (handle, CURLOPT_FOLLOWLOCATION, 1L));
+	CURL_CHECK(curl_easy_setopt
+		(handle, CURLOPT_CONNECTTIMEOUT, connect_timeout));
 	CURL_CHECK(curl_easy_setopt
 		(handle, CURLOPT_WRITEFUNCTION, curl_mem_write_cb));
 	CURL_CHECK(curl_easy_setopt

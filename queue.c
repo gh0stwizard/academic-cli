@@ -74,7 +74,8 @@ queue_term (const char *word, int did[], int didnum, int limit)
 		t->word = word;
 		t->did = did[didnum];
 		t->limit = limit;
-		UV_CHECK(uv_queue_work (loop, (uv_work_t *) t, w_term_cb, w_term_after_cb));
+		UV_CHECK(uv_queue_work
+			(loop, (uv_work_t *) t, w_term_cb, w_term_after_cb));
 	}
 }
 
@@ -104,7 +105,8 @@ queue_word_id (const char *word, int wid, int did, word_f cb)
 	w->word = word;
 	w->wid = wid;
 	w->did = did;
-	UV_CHECK(uv_queue_work (loop, (uv_work_t *) w, w_word_cb, w_word_after_cb));
+	UV_CHECK(uv_queue_work
+		(loop, (uv_work_t *) w, w_word_cb, w_word_after_cb));
 }
 
 

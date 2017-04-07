@@ -364,6 +364,7 @@ parse_args (int argc, char *argv[])
 
 	queue_opts.word_cb = word_cb;
 	queue_opts.term_cb = term_cb;
+	queue_opts.curl.connect_timeout = QUEUE_CURL_CONNECT_TIMEOUT;
 	queue_opts.curl.retries = QUEUE_CURL_RETRIES;
 	queue_opts.curl.retry_sleep.tv_sec = QUEUE_CURL_RETRY_SLEEP / 1000;
 	queue_opts.curl.retry_sleep.tv_nsec =
@@ -391,7 +392,7 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 			{ 0, 0, 0, 0 }
 		};
 
-		r = getopt_long (argc, argv, "d:l:hr:t:qv?D:LT", opts, &index);
+		r = getopt_long (argc, argv, "d:l:hr:t:qv?C:D:LT", opts, &index);
 
 		if (r == -1)
 			break;
@@ -459,6 +460,15 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 		case 'v':
 			print_version ();
 			return;
+
+		case 'C': {
+			long connect_timeout = atol (optarg);
+			if (connect_timeout < 0) {
+				uvls_logf ("connect timeout: invalid value '%s'\n", optarg);
+				return;
+			}
+			queue_opts.curl.connect_timeout = connect_timeout;
+		}	break;
 
 		case 'D': {
 			char *t = optarg;
@@ -528,6 +538,7 @@ print_usage (void)
 		"academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN\n"
 		"Options:");
 #define p(o, d) uvls_printf ("  %-28s %s\n", (o), (d))
+	p ("-C CONNECT-TIMEOUT", "A connection timeout in seconds.");
 	p ("--dictionary ID, -d ID", "Use this dictionary ID.");
 	p ("-D RANGE", "Use range of dictionary IDs, e.g. \"1-5,7,12\".");
 	p ("--help, -h, -?", "Display this information.");

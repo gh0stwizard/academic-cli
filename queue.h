@@ -26,8 +26,9 @@
 #include "word.h"
 
 
-#define QUEUE_CURL_RETRIES		0
-#define QUEUE_CURL_RETRY_SLEEP	1000
+#define QUEUE_CURL_RETRIES         0
+#define QUEUE_CURL_RETRY_SLEEP     1000
+#define QUEUE_CURL_CONNECT_TIMEOUT 30L
 
 
 typedef struct queue_init_s {
@@ -37,6 +38,7 @@ typedef struct queue_init_s {
 	struct {
 		unsigned int retries;
 		struct timespec retry_sleep;
+		long connect_timeout;
 	} curl;
 } queue_init_t;
 

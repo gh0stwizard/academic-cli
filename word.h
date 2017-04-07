@@ -51,6 +51,7 @@ typedef struct word_work_s {
 typedef struct word_init_s {
 	unsigned int retries;
 	struct timespec sleep_ts;
+	long connect_timeout;
 } word_init_t;
 
 
