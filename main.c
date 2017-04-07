@@ -40,8 +40,8 @@ typedef struct timer_arg_s {
 
 static int quite = 0;
 
-
 /* ------------------------------------------------------------------ */
+
 
 static void
 init_curl (void);
@@ -362,6 +362,8 @@ parse_args (int argc, char *argv[])
 	queue_init_t queue_opts;
 
 
+	queue_opts.word_cb = word_cb;
+	queue_opts.term_cb = term_cb;
 	queue_opts.curl.retries = QUEUE_CURL_RETRIES;
 	queue_opts.curl.retry_sleep.tv_sec = QUEUE_CURL_RETRY_SLEEP / 1000;
 	queue_opts.curl.retry_sleep.tv_nsec =
@@ -515,7 +517,7 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 	queue_init (&queue_opts);
 
 	while (optind < argc)
-		queue_term (argv[optind++], did, didnum, term_limit, term_cb);
+		queue_term (argv[optind++], did, didnum, term_limit);
 }
 
 

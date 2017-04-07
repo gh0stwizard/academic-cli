@@ -19,6 +19,7 @@
 #ifndef QUEUE_H__
 #define QUEUE_H__
 
+#include <uv.h>
 #include <time.h>
 #include "academic.h"
 #include "term.h"
@@ -30,6 +31,9 @@
 
 
 typedef struct queue_init_s {
+	uv_async_t *async;
+	term_f term_cb;
+	word_f word_cb;
 	struct {
 		unsigned int retries;
 		struct timespec retry_sleep;
@@ -41,7 +45,7 @@ extern void
 queue_init (queue_init_t *options);
 
 extern void
-queue_term (const char *word, int did[], int didnum, int limit, term_f cb);
+queue_term (const char *word, int did[], int didnum, int limit);
 
 extern void
 queue_word_id (const char *word, int wid, int did, word_f cb);
