@@ -424,9 +424,9 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 					ACADEMIC_DID_SYNONYMUM_RU_EN);
 			else if (strncmp ("ru-en", optarg, 6) == 0)
 				print_dids (
-					ACADEMIC_DID_SYNONYMUM_RU_EN,
+					ACADEMIC_DID_UNIVERSAL_RU_EN,
 					ACADEMIC_DID_ENC_BIOLOGY);
-			else if (strncmp ("enc:ru", optarg, 7) == 0)
+			else if (strncmp ("ru:enc", optarg, 7) == 0)
 				print_dids (
 					ACADEMIC_DID_ENC_BIOLOGY,
 					ACADEMIC_DID_MAX);
@@ -575,7 +575,7 @@ print_dtypes (void)
 	p ("all", "All dictionaries.");
 	p ("en-ru", "English-Russian dictionaries.");
 	p ("ru-en", "Russian-English dictionaries.");
-	p ("enc:ru", "Russian encyclopedies.");
+	p ("ru:enc", "Russian encyclopedies.");
 #undef p
 }
 

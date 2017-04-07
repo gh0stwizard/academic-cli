@@ -71,8 +71,25 @@ const char *academic_durl_fmt[ACADEMIC_DID_MAX] = {
 	"http://english_particles.academic.ru/%d",
 	"http://synonymum_en_ru.academic.ru/%d",
 	/* ru -> en */
+	"http://universal_ru_en.academic.ru/%d",
+	"http://law_ru_en.academic.ru/%d",
+	"http://science_ru_en.academic.ru/%d",
+	"http://dic.academic.ru/dic.nsf/rus_eng_mathematics/%d",
+	"http://polytechnic_ru_en.enacademic.com/%d",
+	"http://auto_ru_en.enacademic.com/%d",
+	"http://technical_ru_en.academic.ru/%d",
+	"http://mechanical_engineering_ru_en.academic.ru/%d",
+	"http://physics_ru_en.enacademic.com/%d",
+	"http://dic.academic.ru/dic.nsf/rus_eng_biology/%d",
+	"http://biology_ru_en.enacademic.com/%d",
+	"http://microbiology_ru_en.academic.ru/%d",
+	"http://psychology_ru_en.enacademic.com/%d",
+	"http://politics_ru_en.enacademic.com/%d",
+	"http://sci_lang_ru_en.academic.ru/%d",
+	"http://phraseology_ru_en.academic.ru/%d",
+	"http://proverbs_ru_en.academic.ru/%d",
 	"http://synonymum_ru_en.academic.ru/%d",
-	/* enc: ru: biology */
+	/* ru: enc: biology */
 	"http://dic.academic.ru/dic.nsf/enc_biology/%d"
 };
 
@@ -128,8 +145,25 @@ const char *academic_did_name[ACADEMIC_DID_MAX] = {
 	"english_particles",
 	"synonymum_en_ru",
 	/* ru -> en */
+	"universal_ru_en",
+	"law_ru_en",
+	"science_ru_en",
+	"rus_eng_mathematics",
+	"polytechnic_ru_en",
+	"auto_ru_en",
+	"technical_ru_en",
+	"mechanical_engineering_ru_en",
+	"physics_ru_en",
+	"rus_eng_biology",
+	"biology_ru_en",
+	"microbiology_ru_en",
+	"psychology_ru_en",
+	"politics_ru_en",
+	"sci_lang_ru_en",
+	"phraseology_ru_en",
+	"proverbs_ru_en",	
 	"synonymum_ru_en",
-	/* enc: ru: biology */
+	/* ru: enc: biology */
 	"enc_biology"
 };
 
@@ -147,7 +181,7 @@ const char *academic_dname_en[ACADEMIC_DID_MAX] = {
 	"English-Russian Dictionary of Economic Terms",
 	"English-Russian Economic Dictionary",
 	"English-Russian Dictionary of Terms for Depositary Storage and Clearing",
-	"English-Russian Legal Dictionary",
+	"English-Russian Dictionary of Law",
 	"English-Russian Politics Dictionary",
 	"English-Russian Insurance Dictionary",
 	"English-Russian Dictionary of Probability Theory, Statistics and Combinatorics",
@@ -185,8 +219,25 @@ const char *academic_dname_en[ACADEMIC_DID_MAX] = {
 	"English Particles. English-Russian Dictionary",
 	"English-Russian Synonyms Dictionary",
 	/* ru -> en */
+	"Russian-English Universal Dictionary",
+	"Russian-English Dictionary of Law",
+	"Russian-English Scientific and Technical Dictionary of Interpreter",
+	"Russian-English Dictionary of Mathematical Terms",
+	"Russian-English Polytechnical Dictionary",
+	"Russian-English Automobile Dictionary",
+	"Russian-English Technical Dictionary",
+	"Russian-English Dictionary of Mechanical Engineering",
+	"Russian-English Dictionary of Physics",
+	"Russian-English Dictionary of Biological Terms",
+	"Russian-English Biological Dictionary",
+	"Russian-English Dictionary of Terms for Microbiology",
+	"Russian-English Psychology Dictionary",
+	"Russian-English Politics Dictionary",
+	"Russian-English Dictionary of Scientific Communication",
+	"Large Russian-English Phraseological Dictionary",
+	"Russian-English Dictionary of Proverbs and Sayings",	
 	"Russian-English Synonyms Dictionary",
-	/* enc: ru: biology */
+	/* ru: enc: biology */
 	"Russian Biological Encyclopedia",
 };
 
@@ -242,7 +293,24 @@ const char *academic_dname_ru[ACADEMIC_DID_MAX] = {
 	"Английские частицы. Англо-русский словарь",
 	"Англо-русский синонимический словарь",
 	/* ru -> en */
+	"Универсальный русско-английский словарь",
+	"Русско-английский юридический словарь",
+	"Русско-английский научно-технический словарь переводчика",
+	"Русско-английский словарь математических терминов",
+	"Русско-английский политехнический словарь",
+	"Русско-английский автомобильный словарь",
+	"Русско-английский технический словарь",
+	"Русско-английский словарь по машиностроению",
+	"Русско-английский словарь по физике",
+	"Русско-английский словарь биологических терминов",
+	"Русско-английский биологический словарь",
+	"Русско-английский словарь терминов по микробиологии",
+	"Русско-английский психологический словарь",
+	"Русско-английский словарь политической терминологии",
+	"Русско-английский словарь научного общения",
+	"Большой русско-английский фразеологический словарь",
+	"Русско-английский словарь пословиц и поговорок",	
 	"Русско-английский синонимический словарь",
-	/* enc: ru: biology */
+	/* ru: enc: biology */
 	"Биологическая энциклопедия"
 };
