@@ -1,3 +1,5 @@
 academic-cli
-a.out
+*.out
 *.o
+*.db
+core*
