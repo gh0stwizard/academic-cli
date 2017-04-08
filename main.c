@@ -358,6 +358,7 @@ parse_args (int argc, char *argv[])
 	int *did;
 	int didnum = 0;
 	www_options_t wo;
+	char *lang = "en";
 
     
     wo.term.limit = WWW_TERM_LIMIT;
@@ -385,7 +386,7 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 			{ "dictionary",     required_argument,  0, 'd' },
 			{ "help",           no_argument,        0, 'h' },
 			{ "list",           required_argument,  0, 'l' },
-			{ "list-all",       no_argument,        0, 'L' },
+			{ "language",       required_argument,  0, 'L' },
 			{ "list-types",     no_argument,        0, 'T' },
 			{ "retries",        required_argument,  0, 'r' },
 			{ "retry-timeout",  required_argument,  0, 't' },
@@ -394,7 +395,7 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 			{ 0, 0, 0, 0 }
 		};
 
-		r = getopt_long (argc, argv, "d:l:hr:t:qv?C:D:LT", opts, &index);
+		r = getopt_long (argc, argv, "d:l:hr:t:qv?C:D:L:T", opts, &index);
 
 		if (r == -1)
 			break;
@@ -419,9 +420,9 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 
 		case 'l':
 			if (strncmp ("all", optarg, 4) == 0)
-				print_dictionaries ("en", "%");
+				print_dictionaries (lang, "%");
 			else
-                print_dictionaries ("en", optarg);
+				print_dictionaries (lang, optarg);
 			return;
 
 		case 'r': {
@@ -488,11 +489,11 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 		}	break;
 
 		case 'L':
-			print_dictionaries ("en", "%");
-			return;
+			lang = optarg;
+			break;
 
 		case 'T':
-			print_types ("en");
+			print_types (lang);
 			return;
 
 		default:
@@ -544,7 +545,7 @@ print_usage (void)
 	p ("-D RANGE", "Use range of dictionary IDs, e.g. \"1-5,7,12\".");
 	p ("--help, -h, -?", "Display this information.");
 	p ("--list TYPE, -l TYPE", "Display dictionary IDs by type. See --list-types.");
-	p ("--list-all, -L", "Display all dictionary IDs.");
+	p ("--language LANG, -L LANG", "Choose output language. Default \"en\".");
 	p ("--list-types, -T", "Display dictionary types.");
 	p ("--retries NUM, -r NUM",
 		"How many times to retry establish a connection.");
