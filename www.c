@@ -187,6 +187,7 @@ term_cb (uv_work_t *work)
 	r->entries = 0;
 
 	NULL_CHECK(curl = curl_easy_init ());
+	CURL_CHECK(curl_easy_setopt (curl, CURLOPT_NOSIGNAL, 1L));
 	CURL_CHECK(curl_easy_setopt (curl, CURLOPT_URL, url));
 	CURL_CHECK(curl_easy_setopt (curl, CURLOPT_FOLLOWLOCATION, 1L));
 	CURL_CHECK(curl_easy_setopt
@@ -273,6 +274,7 @@ word_cb (uv_work_t *work)
     r->data = NULL;
 
 	NULL_CHECK(curl = curl_easy_init ());
+	CURL_CHECK(curl_easy_setopt (curl, CURLOPT_NOSIGNAL, 1L));
 	CURL_CHECK(curl_easy_setopt (curl, CURLOPT_URL, url));
 	CURL_CHECK(curl_easy_setopt (curl, CURLOPT_FOLLOWLOCATION, 1L));
 	CURL_CHECK(curl_easy_setopt
