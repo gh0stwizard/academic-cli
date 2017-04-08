@@ -371,9 +371,10 @@ parse_args (int argc, char *argv[])
 
 	NULL_CHECK(did = malloc (sizeof (*did)));
 
-    if (SQLITE_OK != db_open("academic.db", "academic.sql")) {
-        return;
-    }
+	if (SQLITE_OK != db_open("academic.db", "academic.sql")) {
+		uvls_logf ("error: unable to open database\n");
+		return;
+	}
 
 #define add_did(n) do { \
 did[didnum++] = (n); \
@@ -513,23 +514,21 @@ NULL_CHECK(did = realloc (did, sizeof (*did) * (didnum + 1))); \
 	www_init (&wo);
 
 	while (optind < argc) {
-        for (int i = 0; i < didnum; i++) {
-            char *dn, *wfmt;
-            int id = did[i];
+		for (int i = 0; i < didnum; i++) {
+			char *dn, *wfmt;
+			int id = did[i];
 
-            if (SQLITE_OK == get_did_info (id, &dn, &wfmt)) {
-		        www_term (argv[optind], id, dn, wfmt);
-                free (dn);
-                free (wfmt);
-            }
-            else
-                vlog(VLOG_ERROR, "did = %d: database error", id);
-        }
+			if (SQLITE_OK == get_did_info (id, &dn, &wfmt)) {
+				www_term (argv[optind], id, dn, wfmt);
+				free (dn);
+				free (wfmt);
+			}
+		}
 
-        optind++;
-    }
+		optind++;
+	}
 
-    free (did);
+	free (did);
 }
 
 

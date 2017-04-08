@@ -8,7 +8,7 @@ UV_LIBS = $(shell pkg-config --libs $(UV_MODS))
 
 MYHTML_CFLAGS = -Imyhtml/include
 MYHTML_LIBS = -Lmyhtml/lib -lmyhtml
-MYHTML_LIBS_STATIC = -Wl,-Bstatic,$(MYHTML_LIBS) -Wl,-Bdynamic
+MYHTML_LIBS_STATIC = $(MYHTML_LIBS)_static
 
 SQLITE_MODS = sqlite3
 SQLITE_CFLAGS = $(shell pkg-config --cflags $(SQLITE_MODS))
@@ -23,7 +23,7 @@ CFLAGS += -D_XOPEN_SOURCE=500
 CFLAGS += -D_GNU_SOURCE
 LDFLAGS ?= 
 LIBS ?= 
-LIBS += $(CURL_LIBS) $(UV_LIBS) $(SQLITE_LIBS)
+LIBS += $(MYHTML_LIBS) $(CURL_LIBS) $(UV_LIBS) $(SQLITE_LIBS)
 
 TARGET = academic-cli
 SOURCES = $(wildcard *.c)
@@ -31,18 +31,24 @@ OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
 all: $(TARGET)
 
+static: LDFLAGS = -static
+static: CURL_CFLAGS = $(shell pkg-config --static --cflags $(CURL_MODS))
+static: CURL_LIBS = $(shell pkg-config --static --libs $(CURL_MODS))
+static: SQLITE_CFLAGS = $(shell pkg-config --static --cflags $(SQLITE_MODS))
+static: SQLITE_LIBS = $(shell pkg-config --static --libs $(SQLITE_MODS))
+static: LIBS = $(MYHTML_LIBS_STATIC) $(CURL_LIBS) $(UV_LIBS) $(SQLITE_LIBS)
+static: $(OBJECTS)
+	# static linkage
+	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
+
 devel: CFLAGS += -g -D_DEBUG
 #devel: CFLAGS += -D_DEBUG_HTML
 #devel: CFLAGS += -D_DEBUG_CURL
 devel: all
 
 $(TARGET): $(OBJECTS)
-	# linking
+	# shared linkage
 	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(MYHTML_LIBS) $(LIBS)
-#	# FIXME: libmyhtml.a throws error about undefined reference
-#	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(MYHTML_LIBS_STATIC) $(LIBS)
-#	cd myhtml; git checkout Makefile.cfg
-#	rm myhtml/myhtml.pc
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
@@ -51,7 +57,11 @@ clean:
 	# cleanup
 	$(RM) $(TARGET) $(OBJECTS)
 
-myhtml: myhtml-patch myhtml-library
+strip: $(TARGET)
+	# strip
+	strip --strip-unneeded -R .comment -R .note -R .note.ABI-tag $(TARGET)
+
+myhtml: myhtml-library
 
 myhtml-patch: myhtml-revert-patch
 	# myhtml-patch
@@ -78,4 +88,4 @@ myhtml-clean:
 	# myhtml-clean
 	cd myhtml; $(MAKE) clean; rm -f myhtml.pc
 
-.PHONY: all devel clean myhtml
+.PHONY: all devel clean myhtml static full-static
