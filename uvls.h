@@ -19,6 +19,7 @@
 #ifndef UVLS_H__
 #define UVLS_H__
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <uv.h>
 
@@ -47,11 +48,19 @@ uvls_init (uv_loop_t *loop);
 extern void
 uvls_destroy (void);
 
+#if 0
 #define uvls_puts(str) uvls_fprintf (uvls_out, "%s\n", (str))
 #define uvls_printf(...) uvls_fprintf (uvls_out, __VA_ARGS__)
 #define uvls_log(str) uvls_fprintf (uvls_err, "%s\n", (str))
 #define uvls_logf(...) uvls_fprintf (uvls_err, __VA_ARGS__)
 #define uvls_vlogf(fmt, ap) uvls_vprintf (uvls_err, (fmt), (ap))
+#endif
+
+#define uvls_puts(str)      puts(str)
+#define uvls_printf(...)    fprintf (stdout, __VA_ARGS__)
+#define uvls_log(str)       fprintf (stderr, "%s\n", (str))
+#define uvls_logf(...)      fprintf (stderr, __VA_ARGS__)
+#define uvls_vlogf(fmt, ap) vfprintf (stderr, (fmt), (ap))
 
 extern size_t
 uvls_fprintf (uv_stream_t *stream, const char *fmt, ...);

@@ -23,6 +23,11 @@
 #include "check.h"
 #include "vlog.h"
 
+#ifndef _DEBUG_CLI
+#undef vlog
+#define vlog(level, ...) 
+#endif
+
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define ESC             "\033["

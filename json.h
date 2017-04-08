@@ -19,7 +19,16 @@
 #ifndef JSON_H__
 #define JSON_H__
 
-#include "term.h"
+typedef struct term_entry_s {
+	char *id;
+	char *value;
+	char *info;
+} term_entry_t;
+
+typedef struct term_result_s {
+	term_entry_t *list;
+	int entries;
+} term_result_t;
 
 extern int
 parse_json (const char *data, size_t size, term_entry_t **out);

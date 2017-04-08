@@ -22,6 +22,11 @@
 #include "vlog.h"
 #include "check.h"
 
+#ifndef _DEBUG_HTML
+#undef vlog
+#define vlog(level, ...) 
+#endif
+
 
 /* ------------------------------------------------------------------ */
 
@@ -293,8 +298,10 @@ get_dd_text (myhtml_tree_node_t *node)
 			node = next;
 		}
 		else {
-			while (tag_count-- > 0)
+			while (tag_count >= 1) {
 				node = myhtml_node_parent (node);
+                tag_count--;
+            }
 			node = myhtml_node_next (node);
 			level = 0;
 		}

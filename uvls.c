@@ -154,9 +154,9 @@ uvls_vprintf (uv_stream_t *stream, const char *fmt, va_list ap)
 		vsnprintf (data, data_size, fmt, apcopy);
 		data_len += strlen (data + data_len);
 	}
-	
+
 	req->buf = uv_buf_init (data, data_len);
-	uv_write ((uv_write_t *) req, stream, &req->buf, 1, write_cb);
+	CHECK(uv_write ((uv_write_t *) req, stream, &(req->buf), 1, write_cb));
 
 	return data_len;
 }
