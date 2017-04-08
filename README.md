@@ -13,6 +13,7 @@ website.
 
 * [libuv][2]
 * [curl][3]
+* [sqlite3][6]
 * [myhtml][4] - you have to update the submodule in this git repo.
 
 
@@ -27,14 +28,26 @@ At the moment, not much. There are big plans about that.
 Usage:
 academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN
 Options:
+  -C CONNECT-TIMEOUT           A connection timeout in seconds.
   --dictionary ID, -d ID       Use this dictionary ID.
+  -D RANGE                     Use range of dictionary IDs, e.g. "1-5,7,12".
   --help, -h, -?               Display this information.
   --list TYPE, -l TYPE         Display dictionary IDs by type. See --list-types.
-  --list-all, -L               Display all dictionary IDs.
+  --language LANG, -L LANG     Choose output language. Default "en".
   --list-types, -T             Display dictionary types.
   --retries NUM, -r NUM        How many times to retry establish a connection.
   --retry-timeout MS, -t MS    Delay between connection retries in milliseconds.
+  --quite, -q                  Be quite: print out valueable information only.
   --version, -v                Display version information.
+```
+
+
+## Build
+
+```
+shell> # first, build mythml
+shell> make myhtml
+shell> make
 ```
 
 
@@ -67,3 +80,4 @@ Options:
 [3]: https://curl.haxx.se/
 [4]: https://github.com/lexborisov/myhtml
 [5]: https://github.com/zserge/jsmn
+[6]: http://sqlite.org/
