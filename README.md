@@ -21,10 +21,17 @@ website.
 
 At the moment, not much. There are big plans about that.
 
+* 48 English-Russian dictionaries
+* 17 Russian-English dictionaries
+* 2 Chinese-Russian dictionaries
+* 1 Russian-Chinese dictionary
+* 1 English-Chinese dictionary
+
 
 ## Usage
 
 ```
+shell> ./academic-cli --help
 Usage:
 academic-cli: -d ID1 [-d ID2...] [options] word1 word2 ... wordN
 Options:
