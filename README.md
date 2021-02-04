@@ -14,7 +14,7 @@ website.
 * [libuv][2]
 * [curl][3]
 * [sqlite3][6]
-* [myhtml][4] - you have to update the submodule in this git repo.
+* [myhtml][4] - see [README.git](/README.git) for details
 
 
 ## Features
@@ -51,10 +51,25 @@ Options:
 
 ## Build
 
+Initialize `myhtml` submodule, see [README.git](/README.git):
+
 ```
-shell> # first, build mythml
-shell> make myhtml
-shell> make
+% git submodule init
+% git submodule update --checkout
+```
+
+Check available options to build:
+
+```
+% make help
+WITH_STATIC_MYHTML = YES|NO - link with libmyhtml statically, default: YES
+WITH_STATIC_SQLITE = YES|NO - link with sqlite statically, default: NO
+```
+
+Build as usual:
+
+```
+% make
 ```
 
 
