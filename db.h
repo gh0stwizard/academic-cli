@@ -18,4 +18,7 @@ print_types(const char* lang);
 extern int
 get_did_info(int did, char** outName, char** outFmt);
 
+extern int
+get_dictionary_name(int did, char** outName);
+
 #endif /* DB_H__ */

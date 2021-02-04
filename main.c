@@ -293,7 +293,14 @@ word_cb(www_data_t* d)
 
 #ifndef _DEBUG
     if (data != NULL) {
-        uvls_printf("%s [%d:%d]\n", word, did, wid);
+        char *dname;
+        if (get_dictionary_name(did, &dname) == SQLITE_OK) {
+            uvls_printf("%s [%s|%d:%d]\n",
+                        word, dname, did, wid);
+            free(dname);
+        } else {
+            uvls_printf("%s [%d:%d]\n", word, did, wid);
+        }
         uvls_puts("------------------------------------"
                   "------------------------------------");
         /* remove line breaks at the begining */

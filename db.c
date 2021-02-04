@@ -321,3 +321,38 @@ get_did_info(int did, char** outName, char** outFmt)
     (void)sqlite3_finalize(ppStmt);
     return rc;
 }
+
+extern int
+get_dictionary_name(int did, char** outName)
+{
+    int rc;
+    char sql[] = "SELECT name FROM dictionary_names WHERE did = ?";
+    char* name = NULL;
+    sqlite3_stmt* ppStmt = NULL;
+    const unsigned char *n;
+    int len;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &ppStmt, NULL);
+    rc = sqlite3_bind_int(ppStmt, 1, did);
+    rc = sqlite3_step(ppStmt);
+
+    if (rc == SQLITE_ROW) {
+        rc = SQLITE_OK;
+        n = sqlite3_column_text(ppStmt, 0);
+        len = sqlite3_column_bytes(ppStmt, 0);
+        name = malloc(sizeof(char) * (len + 1));
+        memcpy(name, n, len);
+        name[len] = '\0';
+    } else if (rc == SQLITE_DONE) {
+        vlog(VLOG_TRACE, "did = %d: no records", did);
+    } else {
+        vlog(VLOG_ERROR, sqlite3_errmsg(db));
+    }
+
+    if (outName != NULL)
+        *outName = name;
+
+    (void)sqlite3_finalize(ppStmt);
+
+    return rc;
+}
