@@ -21,6 +21,6 @@
 
 #include <uv.h>
 
-extern uv_loop_t *loop;
+extern uv_loop_t* loop;
 
 #endif /* LOOP_H__ */

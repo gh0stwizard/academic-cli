@@ -1,48 +1,45 @@
+#include "db.h"
+#include "check.h"
+#include "vlog.h"
+#include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <errno.h>
-#include "db.h"
-#include "vlog.h"
-#include "check.h"
 
 #ifndef isspace
-#define isspace(x)  ((x) == '\f' || (x) == '\n' || (x) == '\r' || \
-                     (x) == '\t' || (x) == '\v')
+#define isspace(x)                                                             \
+    ((x) == '\f' || (x) == '\n' || (x) == '\r' || (x) == '\t' || (x) == '\v')
 #endif
 
 #define MAX_SQL_SIZE 1024
 #define MAX_URL_SIZE 2048
 
-
 /* ------------------------------------------------------------------ */
 
 static int
-count_cb(void *userp, int argc, char **argv, char **cols);
+count_cb(void* userp, int argc, char** argv, char** cols);
 
 static int
-db_is_empty(sqlite3 *pDB);
+db_is_empty(sqlite3* pDB);
 
 static int
-db_import(sqlite3 *pDB, FILE *stream);
+db_import(sqlite3* pDB, FILE* stream);
 
 static int
-db_init(sqlite3 *pDB, const char *file);
+db_init(sqlite3* pDB, const char* file);
 
 static int
-print_dictionaries_cb(void *userp, int argc, char **argv, char **cols);
+print_dictionaries_cb(void* userp, int argc, char** argv, char** cols);
 
 static int
-print_types_cb(void *userp, int argc, char **argv, char **azColName);
-
+print_types_cb(void* userp, int argc, char** argv, char** azColName);
 
 /* ------------------------------------------------------------------ */
 
-static sqlite3 *db;
+static sqlite3* db;
 
 /* ------------------------------------------------------------------ */
-
 
 extern void
 db_close(void)
@@ -51,12 +48,10 @@ db_close(void)
         sqlite3_close(db);
 }
 
-
 extern int
-db_open(const char *dbfile, const char *backup)
+db_open(const char* dbfile, const char* backup)
 {
     int rc;
-
 
     rc = sqlite3_open(dbfile, &db);
 
@@ -74,17 +69,15 @@ db_open(const char *dbfile, const char *backup)
     return rc;
 }
 
-
 static int
-db_is_empty(sqlite3 *pDB)
+db_is_empty(sqlite3* pDB)
 {
     int rc;
-    char *msg = NULL;
+    char* msg = NULL;
     int entries = 0;
     char sql[] = "SELECT * FROM sqlite_master WHERE type = 'table'";
 
-
-    rc = sqlite3_exec(pDB, sql, count_cb, (void *) &entries, &msg);
+    rc = sqlite3_exec(pDB, sql, count_cb, (void*)&entries, &msg);
 
     if (rc != SQLITE_OK) {
         vlog(VLOG_ERROR, msg);
@@ -94,28 +87,24 @@ db_is_empty(sqlite3 *pDB)
     return entries;
 }
 
-
 static int
-count_cb(void *userp, int argc, char **argv, char **azColName)
+count_cb(void* userp, int argc, char** argv, char** azColName)
 {
-    int *entries = (int *) userp;
-    (void) argc;
-    (void) argv;
-    (void) azColName;
-
+    int* entries = (int*)userp;
+    (void)argc;
+    (void)argv;
+    (void)azColName;
 
     (*entries)++;
 
     return SQLITE_OK;
 }
 
-
 static int
-db_init(sqlite3 *pDB, const char *file)
+db_init(sqlite3* pDB, const char* file)
 {
     int rc = SQLITE_OK;
-    FILE *stream;
-
+    FILE* stream;
 
     if (file == NULL)
         return rc;
@@ -125,8 +114,7 @@ db_init(sqlite3 *pDB, const char *file)
     if (stream != NULL) {
         rc = db_import(pDB, stream);
         fclose(stream);
-    }
-    else {
+    } else {
         vlog(VLOG_ERROR, "%s: %s", file, strerror(errno));
         rc = SQLITE_CANTOPEN;
     }
@@ -134,25 +122,23 @@ db_init(sqlite3 *pDB, const char *file)
     return rc;
 }
 
-
 /**
  * import data from a file into the database
  */
 static int
-db_import(sqlite3 *pDB, FILE *stream)
+db_import(sqlite3* pDB, FILE* stream)
 {
-    char *line = NULL;
+    char* line = NULL;
     size_t len = 0;
     ssize_t read;
-    char *msg = NULL;
+    char* msg = NULL;
     ssize_t size = 1024;
-    char *sql;
+    char* sql;
     int pos = 0;
-    char *e;
+    char* e;
     int rc = SQLITE_OK;
 
-
-    sql = malloc(sizeof (char) * size);
+    sql = malloc(sizeof(char) * size);
 
     do {
         read = getline(&line, &len, stream);
@@ -161,11 +147,13 @@ db_import(sqlite3 *pDB, FILE *stream)
             break;
 
         /* skip comments */
-        for (e = line; isspace(*e); e++);
-        if (*e == '-' && *(e+1) == '-')
+        for (e = line; isspace(*e); e++)
+            ;
+        if (*e == '-' && *(e + 1) == '-')
             continue;
 
-        for (e = line + read - 1; e != line && isspace(*e); e--);
+        for (e = line + read - 1; e != line && isspace(*e); e--)
+            ;
 
         if (isspace(*e))
             continue;
@@ -179,8 +167,7 @@ db_import(sqlite3 *pDB, FILE *stream)
             memcpy(sql + pos, line, read);
             pos += read;
             size += read;
-        }
-        else if (pos > 0) {
+        } else if (pos > 0) {
             /* joined valid SQL string */
             if (read > size) {
                 sql = realloc(sql, read);
@@ -191,8 +178,7 @@ db_import(sqlite3 *pDB, FILE *stream)
             sql[pos + read] = '\0';
             rc = sqlite3_exec(pDB, sql, NULL, NULL, &msg);
             pos = 0;
-        }
-        else
+        } else
             rc = sqlite3_exec(pDB, line, NULL, NULL, &msg);
 
         if (rc != SQLITE_OK) {
@@ -212,23 +198,22 @@ db_import(sqlite3 *pDB, FILE *stream)
     return rc;
 }
 
-
 #define FMT "%4s %8s %s\n"
 extern int
-print_dictionaries(const char *lang, const char *type)
+print_dictionaries(const char* lang, const char* type)
 {
     int rc;
-    char *msg = NULL;
+    char* msg = NULL;
     char sql[MAX_SQL_SIZE];
 
-#define Q   "SELECT id, type, name FROM v_dictionary_names " \
-            "WHERE lang = '%s' AND type LIKE '%s' " \
-            "ORDER by id;"
+#define Q                                                                      \
+    "SELECT id, type, name FROM v_dictionary_names "                           \
+    "WHERE lang = '%s' AND type LIKE '%s' "                                    \
+    "ORDER by id;"
 
     uvls_printf(FMT, "ID", "TYPE", "DICTIONARY");
-    snprintf (sql, MAX_SQL_SIZE, Q, lang, type);
-    rc = sqlite3_exec
-        (db, sql, print_dictionaries_cb, NULL, &msg);
+    snprintf(sql, MAX_SQL_SIZE, Q, lang, type);
+    rc = sqlite3_exec(db, sql, print_dictionaries_cb, NULL, &msg);
 
     if (rc != SQLITE_OK) {
         vlog(VLOG_ERROR, msg);
@@ -240,14 +225,12 @@ print_dictionaries(const char *lang, const char *type)
     return rc;
 }
 
-
 static int
-print_dictionaries_cb(void *userp, int argc, char **argv, char **cols)
+print_dictionaries_cb(void* userp, int argc, char** argv, char** cols)
 {
-    (void) userp;
-    (void) argc;
-    (void) cols;
-
+    (void)userp;
+    (void)argc;
+    (void)cols;
 
     uvls_printf(FMT, argv[0], argv[1], argv[2]);
 
@@ -255,20 +238,20 @@ print_dictionaries_cb(void *userp, int argc, char **argv, char **cols)
 }
 #undef FMT
 
-
 #define FMT "%8s %s\n"
 extern int
-print_types(const char *lang)
+print_types(const char* lang)
 {
     int rc;
-    char *msg = NULL;
+    char* msg = NULL;
     char sql[MAX_SQL_SIZE];
 
-#define Q   "SELECT type, [desc] FROM v_dictionary_types " \
-            "WHERE lang = '%s';"
+#define Q                                                                      \
+    "SELECT type, [desc] FROM v_dictionary_types "                             \
+    "WHERE lang = '%s';"
 
     uvls_printf(FMT, "TYPE", "DESCRIPTION");
-    snprintf (sql, MAX_SQL_SIZE, Q, lang);
+    snprintf(sql, MAX_SQL_SIZE, Q, lang);
     rc = sqlite3_exec(db, sql, print_types_cb, NULL, &msg);
 
     if (rc != SQLITE_OK) {
@@ -281,14 +264,12 @@ print_types(const char *lang)
     return rc;
 }
 
-
 static int
-print_types_cb(void *userp, int argc, char **argv, char **cols)
+print_types_cb(void* userp, int argc, char** argv, char** cols)
 {
-    (void) userp;
-    (void) argc;
-    (void) cols;
-
+    (void)userp;
+    (void)argc;
+    (void)cols;
 
     uvls_printf(FMT, argv[0], argv[1]);
 
@@ -296,29 +277,27 @@ print_types_cb(void *userp, int argc, char **argv, char **cols)
 }
 #undef FMT
 
-
 extern int
-get_did_info(int did, char **outName, char **outFmt)
+get_did_info(int did, char** outName, char** outFmt)
 {
     int rc;
     char sql[] = "SELECT name, fmt FROM dictionaries WHERE id = ?";
-    char *name = NULL;
-    char *fmt = NULL;
-    sqlite3_stmt *ppStmt = NULL;
+    char* name = NULL;
+    char* fmt = NULL;
+    sqlite3_stmt* ppStmt = NULL;
     const unsigned char *f, *n;
     int len;
 
-    
     rc = sqlite3_prepare_v2(db, sql, -1, &ppStmt, NULL);
     rc = sqlite3_bind_int(ppStmt, 1, did);
-    rc = sqlite3_step (ppStmt);
+    rc = sqlite3_step(ppStmt);
 
     if (rc == SQLITE_ROW) {
         rc = SQLITE_OK;
 
         n = sqlite3_column_text(ppStmt, 0);
         len = sqlite3_column_bytes(ppStmt, 0);
-        name = malloc (sizeof(char) * (len + 1));
+        name = malloc(sizeof(char) * (len + 1));
         memcpy(name, n, len);
         name[len] = '\0';
 
@@ -327,11 +306,11 @@ get_did_info(int did, char **outName, char **outFmt)
         fmt = malloc(sizeof(char) * (len + 1));
         memcpy(fmt, f, len);
         fmt[len] = '\0';
-    }
-    else if (rc == SQLITE_DONE)
+    } else if (rc == SQLITE_DONE) {
         vlog(VLOG_TRACE, "did = %d: no records", did);
-    else
+    } else {
         vlog(VLOG_ERROR, sqlite3_errmsg(db));
+    }
 
     if (outName != NULL)
         *outName = name;
@@ -339,6 +318,6 @@ get_did_info(int did, char **outName, char **outFmt)
     if (outFmt != NULL)
         *outFmt = fmt;
 
-    (void) sqlite3_finalize(ppStmt);
+    (void)sqlite3_finalize(ppStmt);
     return rc;
 }
