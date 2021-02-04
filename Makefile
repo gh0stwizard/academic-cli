@@ -1,91 +1,84 @@
-CURL_MODS = libcurl
-CURL_CFLAGS = $(shell pkg-config --cflags $(CURL_MODS))
-CURL_LIBS = $(shell pkg-config --libs $(CURL_MODS))
+CFLAGS ?= -O2
+PKG_CONFIG ?= pkg-config
+RM ?= rm -f
+WITH_STATIC_MYHTML ?= YES
+WITH_STATIC_SQLITE ?= NO
+MYCFLAGS = -Wall -std=gnu99 -pedantic
+MYCFLAGS += -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
 
-UV_MODS = libuv
-UV_CFLAGS = $(shell pkg-config --cflags $(UV_MODS))
-UV_LIBS = $(shell pkg-config --libs $(UV_MODS))
+MAJOR_VERSION = 0
+MINOR_VERSION = 2
+PATCH_VERSION = 0
+VERSION = $(MAJOR_VERSION).$(MINOR_VERSION).$(PATCH_VERSION)
 
-MYHTML_CFLAGS = -Imyhtml/include
-MYHTML_LIBS = -Lmyhtml/lib -lmyhtml
-MYHTML_LIBS_STATIC = $(MYHTML_LIBS)_static
+DEFS_CURL = $(shell $(PKG_CONFIG) --cflags libcurl)
+LIBS_CURL = $(shell $(PKG_CONFIG) --libs libcurl)
 
-SQLITE_MODS = sqlite3
-SQLITE_CFLAGS = $(shell pkg-config --cflags $(SQLITE_MODS))
-SQLITE_LIBS = $(shell pkg-config --libs $(SQLITE_MODS))
-SQLITE_LIBS_STATIC = -Wl,-Bstatic,$(SQLITE_LIBS) -Wl,-Bdynamic
+DEFS_UV = $(shell $(PKG_CONFIG) --cflags libuv)
+LIBS_UV = $(shell $(PKG_CONFIG) --libs libuv)
 
-CFLAGS ?= 
-CFLAGS += -Wall -std=gnu99
-CFLAGS += $(MYHTML_CFLAGS) $(CURL_CFLAGS) $(UV_CFLAGS)
-CFLAGS += -D_POSIX_C_SOURCE=200809L
-CFLAGS += -D_XOPEN_SOURCE=500
-CFLAGS += -D_GNU_SOURCE
-LDFLAGS ?= 
-LIBS ?= 
-LIBS += $(MYHTML_LIBS) $(CURL_LIBS) $(UV_LIBS) $(SQLITE_LIBS)
+DEFS_SQLITE = $(shell $(PKG_CONFIG) --cflags sqlite3)
+LIBS_SQLITE = $(shell $(PKG_CONFIG) --libs sqlite3)
+LIBS_SQLITE_STATIC = $(shell $(PKG_CONFIG) --libs --static sqlite3)
+ifeq ($(WITH_STATIC_SQLITE),YES)
+LIBS_SQLITE = -Wl,-Bstatic $(LIBS_SQLITE_STATIC) -Wl,-Bdynamic
+endif
+
+DEFS_MYHTML = -Imyhtml/include
+LIBS_MYHTML = -Lmyhtml/lib -lmyhtml
+ifeq ($(WITH_STATIC_MYHTML),YES)
+LIBS_MYHTML = -Wl,-Bstatic -Lmyhtml/lib -lmyhtml_static -Wl,-Bdynamic -lpthread
+endif
+LIBS_STATIC_MYHTML = -Lmyhtml/lib -lmyhtml_static
 
 TARGET = academic-cli
 SOURCES = $(wildcard *.c)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
+#----------------------------------------------------------#
+
+DEFS = $(DEFS_MYHTML) $(DEFS_CURL) $(DEFS_UV) $(DEFS_SQLITE)
+LIBS += $(LIBS_MYHTML) $(LIBS_CURL) $(LIBS_UV) $(LIBS_SQLITE)
+MYCFLAGS += $(DEFS) $(INCLUDES) -DAPP_VERSION=$(VERSION)
+
+#----------------------------------------------------------#
+
 all: $(TARGET)
 
-static: LDFLAGS = -static
-static: CURL_CFLAGS = $(shell pkg-config --static --cflags $(CURL_MODS))
-static: CURL_LIBS = $(shell pkg-config --static --libs $(CURL_MODS))
-static: SQLITE_CFLAGS = $(shell pkg-config --static --cflags $(SQLITE_MODS))
-static: SQLITE_LIBS = $(shell pkg-config --static --libs $(SQLITE_MODS))
-static: LIBS = $(MYHTML_LIBS_STATIC) $(CURL_LIBS) $(UV_LIBS) $(SQLITE_LIBS)
-static: $(OBJECTS)
-	# static linkage
-	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
-
 devel: CFLAGS += -g -D_DEBUG
+#devel: CFLAGS += -D_DEBUG_CLI
 #devel: CFLAGS += -D_DEBUG_HTML
 #devel: CFLAGS += -D_DEBUG_CURL
 devel: all
 
-$(TARGET): $(OBJECTS)
+$(TARGET): myhtml $(OBJECTS)
 	# shared linkage
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(MYHTML_LIBS) $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
 %.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) $(MYCFLAGS) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
 clean:
 	# cleanup
 	$(RM) $(TARGET) $(OBJECTS)
 
+distclean: clean myhtml-clean
+
 strip: $(TARGET)
 	# strip
 	strip --strip-unneeded -R .comment -R .note -R .note.ABI-tag $(TARGET)
 
-myhtml: myhtml-library
-
-myhtml-patch: myhtml-revert-patch
-	# myhtml-patch
-	cd myhtml; \
-	patch -p1 -N -i ../patches/myhtml_01.diff
-
-myhtml-revert-patch:
-	# myhtml-revert-patch
-	cd myhtml; git checkout Makefile.cfg
-
-myhtml-static:
-	# myhtml-static
-	cd myhtml; $(MAKE) static
-
-myhtml-shared:
-	# myhtml-shared
-	cd myhtml; $(MAKE) shared
-
-myhtml-library:
-	# myhtml-library
-	cd myhtml; $(MAKE) library
+myhtml:
+	$(MAKE) -C myhtml
 
 myhtml-clean:
 	# myhtml-clean
-	cd myhtml; $(MAKE) clean; rm -f myhtml.pc
+	$(MAKE) -C myhtml clean
+	$(RM) myhtml/myhtml.pc
 
-.PHONY: all devel clean myhtml static full-static
+help:
+	$(info WITH_STATIC_MYHTML = YES|NO - link with libmyhtml statically, default: YES)
+	$(info WITH_STATIC_SQLITE = YES|NO - link with sqlite statically, default: NO)
+
+.SILENT: help
+.PHONY: all devel clean myhtml distclean strip myhtml-clean

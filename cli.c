@@ -226,7 +226,7 @@ make_mycsi (char ***out, size_t **out_sizes)
 static void
 free_mycsi (char **csis, size_t *sizes, size_t count)
 {
-	for (size_t i; i < count; i++)
+	for (size_t i = 0; i < count; i++)
 		free (csis[i]);
 
 	free (csis);

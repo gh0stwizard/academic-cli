@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <locale.h>
 #include <getopt.h>
 #include <uv.h>
 #include <curl/curl.h>
@@ -29,8 +30,10 @@
 #include "db.h"
 
 
-#define VERSION "0.2"
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define _STR(x) #x
+#define STR(x) _STR(x)
+
 
 typedef struct timer_arg_s {
 	int argc;
@@ -102,6 +105,8 @@ main (int argc, char *argv[])
 {
 	timer_arg_t *myargs;
 
+
+	setlocale(LC_ALL, "");
 
 	init_curl ();
 	init_myhtml ();
@@ -273,7 +278,7 @@ term_cb (www_data_t *data)
 		if (t->list != NULL) {
             term_entry_t *s, *e;
 
-			uvls_logf ("%s [%d]:\nno exact match, %d records available:\n",
+			uvls_logf ("%s [%d]:\nno exact match, %zu records available:\n",
 				word, did, entries);
 			uvls_logf (
 				"------------------------------------"
@@ -324,7 +329,7 @@ word_cb (www_data_t *d)
 		for (i = len; i > 0 && (*t == '\n' || *t == '\r'); i--, t--)
 			*t = '\0';
 		len = i;
-		uvls_printf ("%.*s\n\n", len, out);
+		uvls_printf ("%.*s\n\n", (int)len, out);
 	}
 	else {
 		uvls_logf ("%s [%d:%d]: no data\n", word, did, wid);
@@ -563,7 +568,7 @@ print_version (void)
 	myhtml_version_t m = myhtml_version ();
 
 
-	uvls_printf ("academic-cli version %s\n", VERSION);
+	uvls_printf ("academic-cli version %s\n", STR(APP_VERSION));
 	uvls_printf ("Powered by: curl %s; libuv %s; myhtml %d.%d.%d\n",
 		c->version,
 		uv_version_string (),
